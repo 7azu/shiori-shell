@@ -10,10 +10,10 @@ Singleton {
     // The picker is a tab in the picker window (PickerManager, search: PickerManager.searchText)
     readonly property bool open: PickerManager.isOpen("vpn")
     // ---- VPN data ----
-    // [{ name: "proton-nl", code: "nl", label: "Netherlands" }, ...]
+    // [{ name: "vpn-nl", code: "nl", label: "Netherlands" }, ...]: every WireGuard connection of NetworkManager
     property var connections: []
     property string activeConnection: ""
-    property string lastConnection: "proton"
+    property string lastConnection: ""
     // Connection last saved in ~/.cache/vpn-last (restored at login by
     // ~/.config/hypr/scripts/vpn-state.sh restore)
     property string savedConnection: ""
@@ -24,6 +24,15 @@ Singleton {
     // true while the import runs
     property bool importing: false
     readonly property string importScript: Qt.resolvedUrl("../scripts/vpn_pick.sh").toString().replace("file://", "")
+    // ISO 3166-1 alpha-2 plus "xk" (Kosovo); the same list as in scripts/import_vpn_file.sh
+    readonly property string isoCodes: " ad ae af ag ai al am ao aq ar as at au aw ax az ba bb bd be bf bg bh bi bj bl bm bn bo bq br bs bt" +
+        " bv bw by bz ca cc cd cf cg ch ci ck cl cm cn co cr cu cv cw cx cy cz de dj dk dm do dz ec ee eg eh" +
+        " er es et fi fj fk fm fo fr ga gb gd ge gf gg gh gi gl gm gn gp gq gr gs gt gu gw gy hk hm hn hr ht" +
+        " hu id ie il im in io iq ir is it je jm jo jp ke kg kh ki km kn kp kr kw ky kz la lb lc li lk lr ls" +
+        " lt lu lv ly ma mc md me mf mg mh mk ml mm mn mo mp mq mr ms mt mu mv mw mx my mz na nc ne nf ng ni" +
+        " nl no np nr nu nz om pa pe pf pg ph pk pl pm pn pr ps pt pw py qa re ro rs ru rw sa sb sc sd se sg" +
+        " sh si sj sk sl sm sn so sr ss st sv sx sy sz tc td tf tg th tj tk tl tm tn to tr tt tv tw tz ua ug" +
+        " um us uy uz va vc ve vg vi vn vu wf ws xk ye yt za zm zw "
     readonly property var countryNames: ({
         "at": "Austria",
         "au": "Australia",
@@ -128,17 +137,27 @@ Singleton {
     property bool globeUsed: false
 
     signal switched()
-    // "proton-nl" -> "nl"
+    // Country of a connection from its name, whatever the provider: the part after the first dash has to be a
+    // country code. "vpn-nl", "proton-nl-2", "mullvad-se" -> "nl", "nl", "se"; "vpn-home", "wg0" -> "".
+    // "uk" counts as "gb" (that is what the flag and the globe know).
     function codeOf(name) {
-        const m = /^proton-([a-z]{2})(?:[-_.]|$)/i.exec(name);
-        return m ? m[1].toLowerCase() : "";
+        const m = /^[a-z0-9]+-([a-z]{2})(?:[-_.]|$)/i.exec(name);
+        if (!m)
+            return "";
+
+        const code = m[1].toLowerCase();
+        if (code === "uk")
+            return "gb";
+
+        return isoCodes.indexOf(" " + code + " ") >= 0 ? code : "";
     }
 
+    // Without a country the name itself, minus the prefix the import puts in front
     function labelOf(name, code) {
         if (code !== "")
             return countryNames[code] ?? code.toUpperCase();
 
-        return name;
+        return name.replace(/^vpn-/, "");
     }
 
     function openPicker() {

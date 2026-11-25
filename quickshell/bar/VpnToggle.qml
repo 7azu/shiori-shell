@@ -8,7 +8,6 @@ import Quickshell.Io
 BarIcon {
     id: root
 
-    readonly property string vpnPattern: "proton"
     // Icon options (all from Nerd Fonts Material Design):
     //   Connected:     󰦝 (shield-check)  |  󰒃 (security)  |  󰿄 (vpn-cloud)
     //   Disconnected:  󰦞 (shield-alert)  |  󰒄 (unsecured) |  󱚦 (vpn-off)
@@ -82,7 +81,8 @@ BarIcon {
     Process {
         id: statusProcess
 
-        command: ["bash", "-c", `nmcli connection show --active | grep -q '${root.vpnPattern}' && echo on || echo off`]
+        // On = any WireGuard connection is up, whatever it is called (the same ones the picker lists)
+        command: ["bash", "-c", "nmcli -t -f TYPE connection show --active | grep -qx wireguard && echo on || echo off"]
 
         stdout: StdioCollector {
             onStreamFinished: VpnState.connected = text.trim() === "on"
@@ -93,7 +93,7 @@ BarIcon {
     Process {
         id: geoProcess
 
-        // First line: name of the active WireGuard connection (proton-ch ...), then the ip-api JSON
+        // First line: name of the active WireGuard connection (vpn-ch ...), then the ip-api JSON
         command: ["bash", "-c", "nmcli -t -f NAME,TYPE connection show --active | awk -F: '$2==\"wireguard\"{print $1; exit}'; echo; curl -s 'http://ip-api.com/json?fields=status,country,countryCode,regionName,city,timezone,offset,isp,as,query'"]
 
         stdout: StdioCollector {
@@ -103,7 +103,7 @@ BarIcon {
                     const nl = text.indexOf("\n");
                     const vpnName = text.slice(0, nl).trim();
                     const data = JSON.parse(text.slice(nl + 1).trim());
-                    // The country from the connection name takes precedence: Proton's server country is always right, ip-api
+                    // The country from the connection name takes precedence: the provider's file name is right, ip-api
                     // sometimes places VPN addresses (M247) wrong (CH servers as "Stockholm, Sweden").
                     // Then city/region from ip-api are wrong too -> leave them empty instead of showing something wrong.
                     const code = VpnPickerState.codeOf(vpnName);

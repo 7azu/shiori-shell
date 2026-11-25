@@ -1,7 +1,7 @@
 #!/bin/bash
 # Downloads the round flags (circle-flags, MIT) for all WireGuard connections
 # into ~/.config/quickshell/resources/flags
-# Without arguments: codes from the NetworkManager connections "proton-xx"
+# Without arguments: codes from the NetworkManager connections "<prefix>-xx" (vpn-nl, proton-nl-2 ...)
 # With codes:        ./fetch-flags.sh de us nl
 set -u
 dest="$HOME/.config/quickshell/resources/flags"
@@ -12,7 +12,7 @@ if [ $# -gt 0 ]; then
 else
     codes=$(nmcli -t -f NAME,TYPE connection show \
         | grep ':wireguard$' \
-        | sed -nE 's/^proton-([a-zA-Z]{2})([-_.].*)?:wireguard$/\1/p' \
+        | sed -nE 's/^[a-zA-Z0-9]+-([a-zA-Z]{2})([-_.].*)?:wireguard$/\1/p' \
         | tr 'A-Z' 'a-z' | sort -u)
 fi
 
@@ -27,4 +27,4 @@ for c in $codes; do
         echo "not found: $c" >&2
     fi
 done
-echo "Flaggen in $dest"
+echo "Flags in $dest"

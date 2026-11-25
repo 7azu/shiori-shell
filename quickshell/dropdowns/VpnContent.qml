@@ -106,7 +106,7 @@ Item {
     }
 
     function setConnection(up) {
-        connProcess.command = up ? ["nmcli", "connection", "up", VpnPickerState.lastConnection] : ["nmcli", "connection", "down", iface !== "" ? iface : "proton"];
+        connProcess.command = up ? ["nmcli", "connection", "up", VpnPickerState.lastConnection] : ["nmcli", "connection", "down", iface !== "" ? iface : VpnPickerState.lastConnection];
         connProcess.running = true;
     }
 

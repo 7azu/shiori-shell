@@ -1,7 +1,6 @@
 #!/usr/sbin/nft -f
-# Killswitch: outgoing traffic only through the Proton WireGuard interface.
-# Interface name = NetworkManager connection name (proton-nl, proton-li ...) -> "proton*"
-# Without an active VPN: no internet (only WireGuard handshake, DHCP, LAN).
+# Killswitch: outgoing traffic only through a WireGuard tunnel, whatever the connection is called.
+# Without an active VPN: no internet (only the tunnel's own packets, DHCP, LAN).
 
 table inet killswitch
 delete table inet killswitch
@@ -13,9 +12,13 @@ table inet killswitch {
         oif "lo" accept
 
         # Everything through the tunnel is allowed
-        oifname "proton*" accept
+        meta oifkind "wireguard" accept
 
-        # WireGuard handshake/tunnel packets to the Proton server (adjust the port if needed)
+        # The tunnel's own (encrypted) packets to the VPN server. Connections imported by the VPN picker
+        # mark them (scripts/import_vpn_file.sh, fwmark 51820), so the server may use any port. Only
+        # root can set that mark.
+        meta mark 51820 accept
+        # Connections without the mark: WireGuard's usual port (add your server's port here if it differs)
         udp dport 51820 accept
 
         # DHCP + IPv6 neighbor discovery, otherwise the local network breaks

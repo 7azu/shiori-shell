@@ -267,12 +267,28 @@ If you install Zen later, run `./install.sh` again (or `sudo ~/.config/wal/zen-l
 mod in Zen's settings under Mods). The settings (fonts, website colors) go into your Zen profile on the next
 wallpaper change.
 
+### VPN
+
+The VPN picker lists every WireGuard connection of NetworkManager, from any provider. The plus button
+imports `.conf` files.
+
+The file name has to contain the two-letter country code of the server, otherwise the picker cannot
+assign a flag or a place on the globe. The code may stand anywhere in the name, set apart by a dash,
+dot, `#` or similar: `NL#12.conf`, `wg-NL-FREE-12.conf` and `se-got-wg-001.conf` become `vpn-nl`,
+`vpn-nl-2` and `vpn-se`. Most providers name their files like this already; rename a file such as
+`home.conf` to `home-de.conf` before importing it. A file without a country code still works: it
+becomes `vpn-<file name>` and shows up in the list without a flag.
+
 ### VPN killswitch
 
 The VPN picker works with NetworkManager alone. The killswitch is optional: it blocks all traffic
 outside the VPN and needs root parts (nftables rules, a boot service and a sudo rule for exactly four
 `nft` commands). Install it only if you want it, with `./install.sh` or
 `sudo quickshell/scripts/install-killswitch.sh`.
+
+The rules let any WireGuard tunnel through. Connections imported with the plus button work with every
+server port. For a connection you set up by hand whose server does not use port 51820, add the port in
+`quickshell/system/vpn-killswitch.nft` and run the install script again.
 
 ### Encrypted folders
 

@@ -1463,7 +1463,7 @@ Item {
                         id: subText
 
                         width: parent.width
-                        // Only on selection/connection (proton-xx in every row said nothing new); opens softly,
+                        // Only on selection/connection (vpn-xx in every row said nothing new); opens softly,
                         // the name glides up from the middle meanwhile
                         height: implicitHeight * call.focusK
                         opacity: call.focusK
