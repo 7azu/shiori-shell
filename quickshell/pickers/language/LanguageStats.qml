@@ -154,7 +154,7 @@ Item {
         id: hero
 
         readonly property real st: picker.stage(picker.statsProgress, 0.1)
-        readonly property int mins: Math.floor(picker.heroMinutes)
+        readonly property int mins: Math.floor(picker.listenStats.heroMinutes)
 
         y: tabBar.height + 20
         width: parent.width
@@ -218,18 +218,18 @@ Item {
 
             Text {
                 anchors.right: parent.right
-                text: picker.progress >= 1 ? "GOAL REACHED" : Math.round(picker.progress * 100) + " %"
-                color: picker.progress >= 1 ? Theme.accent : Theme.text
+                text: picker.listenStats.progress >= 1 ? "GOAL REACHED" : Math.round(picker.listenStats.progress * 100) + " %"
+                color: picker.listenStats.progress >= 1 ? Theme.accent : Theme.text
                 font.family: Theme.fontUi
-                font.pixelSize: picker.progress >= 1 ? Theme.sizeMicro : Theme.sizeLead
+                font.pixelSize: picker.listenStats.progress >= 1 ? Theme.sizeMicro : Theme.sizeLead
                 font.weight: Font.DemiBold
-                font.letterSpacing: picker.progress >= 1 ? Theme.microSpacing : 0
+                font.letterSpacing: picker.listenStats.progress >= 1 ? Theme.microSpacing : 0
                 font.features: Theme.tabular
             }
 
             Text {
                 anchors.right: parent.right
-                text: "of " + statsView.hm(picker.maxMinutes) + " " + (picker.activePeriod === "day" ? "daily" : picker.activePeriod === "week" ? "weekly" : picker.activePeriod === "month" ? "monthly" : "yearly") + " goal"
+                text: "of " + statsView.hm(picker.listenStats.maxMinutes) + " " + (picker.activePeriod === "day" ? "daily" : picker.activePeriod === "week" ? "weekly" : picker.activePeriod === "month" ? "monthly" : "yearly") + " goal"
                 color: Theme.textFaint
                 font.family: Theme.fontUi
                 font.pixelSize: Theme.sizeSmall
@@ -254,7 +254,7 @@ Item {
         opacity: hero.st
 
         Rectangle {
-            width: Math.round(parent.width * Math.min(1, picker.heroProgress))
+            width: Math.round(parent.width * Math.min(1, picker.listenStats.heroProgress))
             height: parent.height
             radius: 2
             color: Theme.accent
@@ -275,10 +275,10 @@ Item {
         Repeater {
             model: [{
                 "label": "STREAK",
-                "value": picker.streak + (picker.streak === 1 ? " day" : " days")
+                "value": picker.listenStats.streak + (picker.listenStats.streak === 1 ? " day" : " days")
             }, {
                 "label": "DAILY AVERAGE",
-                "value": statsView.hm(picker.weekAvgMinutes),
+                "value": statsView.hm(picker.listenStats.weekAvgMinutes),
                 "note": "last 7 days"
             }, {
                 "label": "ALL TIME",

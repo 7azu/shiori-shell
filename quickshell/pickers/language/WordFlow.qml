@@ -31,7 +31,7 @@ Item {
     property var items: []
 
     function rebuild() {
-        items = picker.wordItems(para);
+        items = wf.view.wordItems(para);
     }
 
     onParaChanged: rebuild()
@@ -104,7 +104,7 @@ Item {
                         model: wtok.modelData.gap ? [] : (wtok.modelData.head ? [{
                             "t": wtok.modelData.head,
                             "r": ""
-                        }] : []).concat(picker.segs(wtok.modelData.f, wtok.modelData.t)).concat(wtok.modelData.tail ? [{
+                        }] : []).concat(wf.view.segs(wtok.modelData.f, wtok.modelData.t)).concat(wtok.modelData.tail ? [{
                             "t": wtok.modelData.tail,
                             "r": ""
                         }] : [])

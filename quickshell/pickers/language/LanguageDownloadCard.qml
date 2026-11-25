@@ -9,11 +9,11 @@ Item {
     id: dlCard
 
     required property var picker
-    readonly property bool failed: LanguageAudioState.downloadError !== "" && !LanguageAudioState.isDownloading
-    readonly property bool converting: LanguageAudioState.isConverting
-    readonly property bool waiting: LanguageAudioState.isDownloading && (converting || LanguageAudioState.isPreparingSubs || LanguageAudioState.downloadProgress < 0.005)
+    readonly property bool failed: LanguageDownloadState.downloadError !== "" && !LanguageDownloadState.isDownloading
+    readonly property bool converting: LanguageDownloadState.isConverting
+    readonly property bool waiting: LanguageDownloadState.isDownloading && (converting || LanguageDownloadState.isPreparingSubs || LanguageDownloadState.downloadProgress < 0.005)
     readonly property color tone: failed ? Theme.bad : Theme.accent
-    property real dlValue: LanguageAudioState.downloadProgress
+    property real dlValue: LanguageDownloadState.downloadProgress
 
     width: parent.width
     height: picker.showDl ? (failed ? 74 : 62) : 0
@@ -26,7 +26,7 @@ Item {
 
         x: 12
         y: 4
-        text: dlCard.failed ? "DOWNLOAD FAILED" : LanguageAudioState.isPreparingSubs ? "PREPARING SUBTITLES" : dlCard.converting ? "CONVERTING" : (LanguageAudioState.downloadMode === "video" ? "DOWNLOADING VIDEO" : "DOWNLOADING") + (dlCard.waiting ? "" : "  ·  " + Math.round(dlCard.dlValue * 100) + " %")
+        text: dlCard.failed ? "DOWNLOAD FAILED" : LanguageDownloadState.isPreparingSubs ? "PREPARING SUBTITLES" : dlCard.converting ? "CONVERTING" : (LanguageDownloadState.downloadMode === "video" ? "DOWNLOADING VIDEO" : "DOWNLOADING") + (dlCard.waiting ? "" : "  ·  " + Math.round(dlCard.dlValue * 100) + " %")
         color: dlCard.tone
         font.family: Theme.fontUi
         font.pixelSize: Theme.sizeMicro
@@ -40,7 +40,7 @@ Item {
         anchors.top: status.bottom
         anchors.topMargin: 5
         width: parent.width - x - 52
-        text: dlCard.failed ? LanguageAudioState.downloadError : LanguageAudioState.downloadTitle
+        text: dlCard.failed ? LanguageDownloadState.downloadError : LanguageDownloadState.downloadTitle
         color: dlCard.failed ? Theme.textDim : Theme.text
         elide: Text.ElideRight
         wrapMode: dlCard.failed ? Text.Wrap : Text.NoWrap
@@ -59,7 +59,7 @@ Item {
         height: 28
         radius: height / 2
         color: cancelArea.containsMouse ? Theme.glassHover : Theme.glass
-        opacity: LanguageAudioState.isDownloading ? 1 : 0
+        opacity: LanguageDownloadState.isDownloading ? 1 : 0
         visible: opacity > 0.01
         scale: cancelArea.pressed ? 0.9 : 1
 
@@ -77,7 +77,7 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: LanguageAudioState.cancelDownload()
+            onClicked: LanguageDownloadState.cancelDownload()
         }
 
         Behavior on scale {

@@ -14,6 +14,8 @@ singleton ClipboardState 1.0 ClipboardState.qml
 singleton DropdownState 1.0 DropdownState.qml
 singleton HyprlandData 1.0 HyprlandData.qml
 singleton LanguageAudioState 1.0 LanguageAudioState.qml
+singleton LanguageDownloadState 1.0 LanguageDownloadState.qml
+singleton LanguageSubtitleState 1.0 LanguageSubtitleState.qml
 singleton LanguageReadingState 1.0 LanguageReadingState.qml
 singleton MachineConfig 1.0 MachineConfig.qml
 singleton MusicPickerState 1.0 MusicPickerState.qml

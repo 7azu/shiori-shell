@@ -10,7 +10,7 @@ import Quickshell.Wayland
 PanelWindow {
     id: win
 
-    readonly property bool active: LanguageAudioState.subsShown && LanguageAudioState.cues.length > 0 && LanguageAudioState.currentIsVideo && LanguageAudioState.mediaActive && !LanguageAudioState.watching && !PickerManager.anyOpen
+    readonly property bool active: LanguageSubtitleState.subsShown && LanguageSubtitleState.cues.length > 0 && LanguageAudioState.currentIsVideo && LanguageAudioState.mediaActive && !LanguageAudioState.watching && !PickerManager.anyOpen
 
     onActiveChanged: {
         // Hold the monitor on appearing, do not jump after the mouse

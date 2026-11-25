@@ -12,8 +12,8 @@ Item {
     id: box
 
     readonly property string jp: "Noto Sans CJK JP"
-    readonly property var cues: LanguageAudioState.cues
-    readonly property int idx: LanguageAudioState.cueIndex
+    readonly property var cues: LanguageSubtitleState.cues
+    readonly property int idx: LanguageSubtitleState.cueIndex
     readonly property var cue: idx >= 0 && idx < cues.length ? cues[idx] : null
     // The last shown line stays during speech pauses (dimmed) instead of jumping to empty
     property var shownCue: null
@@ -48,7 +48,7 @@ Item {
     }
     // Character the speaker is at. YouTube's word times (k) are support points, in between it runs
     // on evenly; after the last one it runs on until the end of the line (= start of the next one, see
-    // LanguageAudioState.clipCues). Some sections have only ONE mark at the start of the line - without running on
+    // LanguageSubtitleState.clipCues). Some sections have only ONE mark at the start of the line - without running on
     // the highlight got stuck there at the first word. Without word times the start of the line is the only support
     // point. After the end: line normal (n).
     // A fixed speed (5 characters/s, 13 letters/s) was too fast for slow speakers: the highlight reached the end
@@ -173,7 +173,7 @@ Item {
 
     function translate() {
         if (cue && !cue.en)
-            LanguageAudioState.translateCue(idx);
+            LanguageSubtitleState.translateCue(idx);
 
     }
 
@@ -371,7 +371,7 @@ Item {
             Text {
                 id: trText
 
-                readonly property bool busy: LanguageAudioState.translatingIdx === box.idx && box.idx >= 0
+                readonly property bool busy: LanguageSubtitleState.translatingIdx === box.idx && box.idx >= 0
 
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: Math.min(parent.width, implicitWidth)
@@ -402,7 +402,7 @@ Item {
             glyph: "󰗊"
             visible: LanguageReadingState.translator !== "" || (box.cue !== null && !!box.cue.en)
             on: box.cue !== null && !!box.cue.en
-            enabled: box.cue !== null && !box.cue.en && LanguageAudioState.translatingIdx < 0
+            enabled: box.cue !== null && !box.cue.en && LanguageSubtitleState.translatingIdx < 0
             onClicked: box.translate()
         }
 

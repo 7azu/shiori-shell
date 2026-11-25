@@ -24,7 +24,7 @@ Item {
     Text {
         x: 12
         y: 12
-        text: LanguageAudioState.isSearching && !LanguageAudioState.isLoadingMore ? "SEARCHING YOUTUBE" : "YOUTUBE  ·  " + picker.results.length
+        text: LanguageDownloadState.isSearching && !LanguageDownloadState.isLoadingMore ? "SEARCHING YOUTUBE" : "YOUTUBE  ·  " + picker.results.length
         color: Theme.textFaint
         font.family: Theme.fontUi
         font.pixelSize: Theme.sizeMicro
@@ -154,7 +154,7 @@ Item {
                 width: 32
                 height: 32
                 radius: height / 2
-                opacity: LanguageAudioState.isDownloading ? 0.35 : 1
+                opacity: LanguageDownloadState.isDownloading ? 0.35 : 1
                 color: dlMouse.containsMouse ? Theme.accent : searchRow.hot ? Theme.glassHover : Theme.glass
 
                 Text {
@@ -170,10 +170,10 @@ Item {
 
                     anchors.fill: parent
                     hoverEnabled: true
-                    cursorShape: LanguageAudioState.isDownloading ? Qt.ArrowCursor : Qt.PointingHandCursor
+                    cursorShape: LanguageDownloadState.isDownloading ? Qt.ArrowCursor : Qt.PointingHandCursor
                     onClicked: {
-                        if (!LanguageAudioState.isDownloading)
-                            LanguageAudioState.downloadVideo(searchRow.modelData.url, searchRow.modelData.title);
+                        if (!LanguageDownloadState.isDownloading)
+                            LanguageDownloadState.downloadVideo(searchRow.modelData.url, searchRow.modelData.title);
 
                     }
                 }
@@ -199,17 +199,17 @@ Item {
                 width: moreText.implicitWidth + 36
                 height: 34
                 radius: height / 2
-                color: moreMouse.containsMouse && !LanguageAudioState.isLoadingMore ? Theme.glassHover : Theme.glass
+                color: moreMouse.containsMouse && !LanguageDownloadState.isLoadingMore ? Theme.glassHover : Theme.glass
 
                 Text {
                     id: moreText
 
                     anchors.centerIn: parent
-                    text: LanguageAudioState.isLoadingMore ? "Loading…" : "Load more"
+                    text: LanguageDownloadState.isLoadingMore ? "Loading…" : "Load more"
                     font.family: Theme.fontUi
                     font.pixelSize: Theme.sizeBody
                     font.weight: Font.Medium
-                    color: LanguageAudioState.isLoadingMore ? Theme.textFaint : Theme.text
+                    color: LanguageDownloadState.isLoadingMore ? Theme.textFaint : Theme.text
                 }
 
                 MouseArea {
@@ -217,8 +217,8 @@ Item {
 
                     anchors.fill: parent
                     hoverEnabled: true
-                    cursorShape: LanguageAudioState.isLoadingMore ? Qt.ArrowCursor : Qt.PointingHandCursor
-                    onClicked: LanguageAudioState.loadMoreResults()
+                    cursorShape: LanguageDownloadState.isLoadingMore ? Qt.ArrowCursor : Qt.PointingHandCursor
+                    onClicked: LanguageDownloadState.loadMoreResults()
                 }
 
                 Behavior on color {

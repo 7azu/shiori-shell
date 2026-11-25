@@ -18,3 +18,16 @@ LanguageDownloadCard 1.0 LanguageDownloadCard.qml
 LanguageSearch 1.0 LanguageSearch.qml
 LanguageStats 1.0 LanguageStats.qml
 LanguageReader 1.0 LanguageReader.qml
+LanguageHeader 1.0 LanguageHeader.qml
+ListenStats 1.0 ListenStats.qml
+LibraryStage 1.0 LibraryStage.qml
+LibraryCue 1.0 LibraryCue.qml
+LibraryCard 1.0 LibraryCard.qml
+CircleButton 1.0 CircleButton.qml
+ReaderShelf 1.0 ReaderShelf.qml
+ReaderChapters 1.0 ReaderChapters.qml
+ReaderNotes 1.0 ReaderNotes.qml
+ReaderText 1.0 ReaderText.qml
+ReaderSentence 1.0 ReaderSentence.qml
+ReaderWordPop 1.0 ReaderWordPop.qml
+ReaderFooter 1.0 ReaderFooter.qml

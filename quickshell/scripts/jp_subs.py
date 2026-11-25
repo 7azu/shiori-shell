@@ -12,7 +12,7 @@
 # Other languages: words are split at spaces (no dictionary, no furigana, YouTube word times only).
 # JMdict (jmdict-simplified, English) is downloaded the first time and stored as SQLite.
 #
-# Output: JSON lines like jp_library.py ({"progress": ...}, last {"ok": ...}).
+# Output: JSON lines like jp_library.py ({"progress": ...}, last {"ok": ...}); shared parts in scripts/readerkit/.
 # JSON format: {"cues": [{"s": start, "e": end, "t": text, "w": [word, ...], "en": translation?,
 #                         "k": [[char offset without spaces, second], ...]? (word times, automatic only)}]}
 #   word: {"t": text, "f": furigana markup, "l": base form, "lr": reading of the base form,
@@ -30,10 +30,10 @@ import tempfile
 import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import jp_library as jl  # noqa: E402  (furigana, venv, JSON helpers as in the Read tab)
+from readerkit import base as rk, book, ja_text  # noqa: E402  (furigana, venv, JSON helpers as in the Read tab)
 import jp_translate as jt  # noqa: E402  (backend choice, see there)
 
-DICT_DB = os.path.join(jl.DATA, "jmdict.sqlite")
+DICT_DB = os.path.join(rk.DATA, "jmdict.sqlite")
 HOME_CACHE = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
 DICT_API = "https://api.github.com/repos/scriptin/jmdict-simplified/releases/latest"
 SKIP_POS = ("補助記号", "空白", "記号")
@@ -49,24 +49,24 @@ POS = {"n": "noun", "pn": "pronoun", "v1": "ichidan verb", "vs": "suru verb", "v
 
 def ensure_venv():
     """Like jp_library.ensure_venv, but restarts THIS script in the venv."""
-    py = os.path.join(jl.VENV, "bin/python")
-    if os.path.realpath(sys.prefix) == os.path.realpath(jl.VENV):
+    py = os.path.join(rk.VENV, "bin/python")
+    if os.path.realpath(sys.prefix) == os.path.realpath(rk.VENV):
         return
     if not os.path.exists(py) or subprocess.run([py, "-c", "import fugashi, unidic_lite"],
                                                 capture_output=True).returncode != 0:
         # Same venv as the Read tab, same packages (only that one needs cutlet, but it does no harm)
-        jl.progress("Setting up the Japanese tokenizer (one time, ~60 MB) …")
+        rk.progress("Setting up the Japanese tokenizer (one time, ~60 MB) …")
         pkgs = ["fugashi", "unidic-lite", "cutlet"]
         uv = shutil.which("uv")
         try:
             if uv:
-                subprocess.run([uv, "venv", "-q", "--allow-existing", jl.VENV], check=True, capture_output=True)
+                subprocess.run([uv, "venv", "-q", "--allow-existing", rk.VENV], check=True, capture_output=True)
                 subprocess.run([uv, "pip", "install", "-q", "--python", py] + pkgs, check=True, capture_output=True)
             else:
-                subprocess.run([sys.executable, "-m", "venv", jl.VENV], check=True, capture_output=True)
+                subprocess.run([sys.executable, "-m", "venv", rk.VENV], check=True, capture_output=True)
                 subprocess.run([py, "-m", "pip", "install", "-q"] + pkgs, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
-            jl.fail("Tokenizer installation failed: " + (e.stderr or b"").decode(errors="replace")[-300:])
+            rk.fail("Tokenizer installation failed: " + (e.stderr or b"").decode(errors="replace")[-300:])
     os.execv(py, [py, os.path.abspath(__file__)] + sys.argv[1:])
 
 
@@ -75,17 +75,17 @@ def ensure_venv():
 def ensure_dict():
     if os.path.exists(DICT_DB):
         return
-    jl.progress("Downloading dictionary (one time, ~12 MB) …")
-    rel = json.loads(jl.fetch(DICT_API))
+    rk.progress("Downloading dictionary (one time, ~12 MB) …")
+    rel = json.loads(rk.fetch(DICT_API))
     url = next((a["browser_download_url"] for a in rel.get("assets", [])
                 if re.match(r"jmdict-eng-\d.*\.json\.zip$", a["name"])), None)
     if not url:
-        jl.fail("Dictionary download not found")
+        rk.fail("Dictionary download not found")
     with tempfile.TemporaryDirectory() as tmp:
         z = os.path.join(tmp, "d.zip")
         with open(z, "wb") as f:
-            f.write(jl.fetch(url, timeout=120))
-        jl.progress("Building dictionary index …")
+            f.write(rk.fetch(url, timeout=120))
+        rk.progress("Building dictionary index …")
         with zipfile.ZipFile(z) as zf:
             data = json.loads(zf.read(zf.namelist()[0]))
     tmpdb = DICT_DB + ".tmp"
@@ -149,7 +149,7 @@ def lookup(keys, reading, upos=""):
             # matching reading > common word > spelling as kanji (instead of only listed as kana)
             want = UNIDIC_POS.get(upos, ())
             fits = any(p == w or p.startswith(w) for s in e["s"] for p in s["p"] for w in want)
-            kana_key = not jl.KANJI_RE.search(key)
+            kana_key = not ja_text.KANJI_RE.search(key)
             score = (3 if fits else 0) + (2 if reading and reading in e["r"] else 0) + common \
                 + (1 if key in e["k"] else 0) + (1 if kana_key and not e["k"] else 0)
             if best is None or score > best[0]:
@@ -227,7 +227,7 @@ def parse_vtt(path, japanese=True):
             paired.append((s0, e0, [""], [""]))
     cues = paired
     # Japanese fragments are glued together; elsewhere they are words with a space between them
-    glue, merge_max, ends = ("", MERGE_MAX, tuple(jl.SENT_END)) if japanese else (" ", MERGE_MAX_SPACED, (".", "!", "?", "…"))
+    glue, merge_max, ends = ("", MERGE_MAX, tuple(book.SENT_END)) if japanese else (" ", MERGE_MAX_SPACED, (".", "!", "?", "…"))
     out = []
     if auto:
         last = ""
@@ -243,7 +243,7 @@ def parse_vtt(path, japanese=True):
             if not line:  # only a sound ([音楽], [拍手] ...)
                 continue
             k = chunks(rawl[-1], start)
-            if not jl.JA_RE.search(line) and not re.search(r"\w", line):  # only punctuation
+            if not ja_text.JA_RE.search(line) and not re.search(r"\w", line):  # only punctuation
                 if out:
                     out[-1][1] = end
                     if not out[-1][2].endswith(ends):
@@ -277,7 +277,7 @@ def ja_share(path):
     text = re.sub(r"<[^>]+>|" + TS + r"|-->|WEBVTT|Kind:.*|Language:.*|align:\S+|position:\S+", "",
                   open(path, encoding="utf-8", errors="replace").read())
     chars = [c for c in text if not c.isspace() and not c.isdigit()]
-    return sum(1 for c in chars if jl.JA_RE.match(c)) / max(1, len(chars))
+    return sum(1 for c in chars if ja_text.JA_RE.match(c)) / max(1, len(chars))
 
 
 def find_vtt(video, code="ja"):
@@ -299,12 +299,12 @@ def find_vtt(video, code="ja"):
 def words(text):
     """Line -> words. Verb/adjective + auxiliary verbs/て stay one word (食べました -> 食べる)."""
     groups = []
-    for w in jl.tagger()(text):
+    for w in ja_text.tagger()(text):
         f = w.feature
         pos = f.pos1 or ""
         surface = w.surface
-        kana = jl.hira(f.kana) if f.kana and f.kana != "*" else surface
-        kana = jl.READINGS.get(surface, kana)
+        kana = ja_text.hira(f.kana) if f.kana and f.kana != "*" else surface
+        kana = ja_text.READINGS.get(surface, kana)
         prev = groups[-1] if groups else None
         attach = prev and prev["head"] in ("動詞", "形容詞") and not w.white_space and (
             pos == "助動詞" or (pos == "助詞" and f.pos2 == "接続助詞" and surface in ("て", "で", "ちゃ", "じゃ"))
@@ -323,12 +323,12 @@ def words(text):
         lemma = (f.lemma or surface).split("-")[0]
         groups.append({"t": surface, "r": kana, "head": pos, "last": surface,
                        "l": f.orthBase if f.orthBase and f.orthBase != "*" else lemma, "lemma": lemma,
-                       "lr": jl.hira(f.lForm) if f.lForm and f.lForm != "*" else kana})
+                       "lr": ja_text.hira(f.lForm) if f.lForm and f.lForm != "*" else kana})
     out = []
     for g in groups:
         item = {"t": g["t"]}
-        if jl.KANJI_RE.search(g["t"]):
-            item["f"] = jl.align(g["t"], g["r"])
+        if ja_text.KANJI_RE.search(g["t"]):
+            item["f"] = ja_text.align(g["t"], g["r"])
         if g["head"] in SKIP_POS:
             out.append(item)
             continue
@@ -359,7 +359,7 @@ def ensure_whisper():
     except ImportError:
         pass
     uv = shutil.which("uv")
-    jl.progress("Installing speech recognition (one time) …")
+    rk.progress("Installing speech recognition (one time) …")
     cmd = [uv, "pip", "install", "-q", "--python", sys.executable, "faster-whisper"] if uv else \
         [sys.executable, "-m", "pip", "install", "-q", "faster-whisper"]
     if subprocess.run(cmd, capture_output=True).returncode != 0:
@@ -375,7 +375,7 @@ def whisper_words(video, base):
     """[[word, start, end], …] for the whole video (remembered in <base>.whisper.json)."""
     cache = base + ".whisper.json"
     if os.path.exists(cache) and os.path.getmtime(cache) >= os.path.getmtime(video):
-        return jl.read_json(cache, None)
+        return rk.read_json(cache, None)
     if not ensure_whisper():
         return None
     import numpy as np
@@ -389,15 +389,15 @@ def whisper_words(video, base):
     total = len(audio) / 16000
     hub = os.path.join(os.environ.get("HF_HOME") or os.path.join(HOME_CACHE, "huggingface"), "hub")
     if not glob.glob(os.path.join(hub, "models--*faster-whisper-" + WHISPER_MODEL)):
-        jl.progress("Downloading speech model (one time, ~460 MB) …")
+        rk.progress("Downloading speech model (one time, ~460 MB) …")
     model = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8", cpu_threads=os.cpu_count() or 4)
     segs, _ = model.transcribe(audio, language="ja", word_timestamps=True, beam_size=1, vad_filter=True)
     out = []
     for seg in segs:
-        jl.progress("Timing words %d%% …" % min(99, int(seg.end / max(1, total) * 100)))
+        rk.progress("Timing words %d%% …" % min(99, int(seg.end / max(1, total) * 100)))
         for w in seg.words or []:
             out.append([w.word, round(float(w.start), 2), round(float(w.end), 2)])
-    jl.write_json(cache, out)
+    rk.write_json(cache, out)
     return out
 
 
@@ -408,20 +408,20 @@ def kana(text):
     """Reading as hiragana, kana only (punctuation, spaces, Latin are dropped)."""
     if text not in _kana_cache:
         r = []
-        for w in jl.tagger()(text):
+        for w in ja_text.tagger()(text):
             f = w.feature
             k = f.kana if f.kana and f.kana != "*" else w.surface
-            r.append(jl.READINGS.get(w.surface) or jl.hira(k))
-        _kana_cache[text] = "".join(c for c in jl.hira("".join(r)) if KANA_RE.match(c))
+            r.append(ja_text.READINGS.get(w.surface) or ja_text.hira(k))
+        _kana_cache[text] = "".join(c for c in ja_text.hira("".join(r)) if KANA_RE.match(c))
     return _kana_cache[text]
 
 
 def word_kana(item):
     """Reading of a subtitle word: from the furigana markup, otherwise via the tokenizer."""
     if item.get("f"):
-        k = jl.hira(re.sub(r"\{([^|}]+)\|([^}]+)\}", r"\2", item["f"]))
+        k = ja_text.hira(re.sub(r"\{([^|}]+)\|([^}]+)\}", r"\2", item["f"]))
         k = "".join(c for c in k if KANA_RE.match(c))
-        if not jl.KANJI_RE.search(re.sub(r"\{[^}]+\}", "", item["f"])):
+        if not ja_text.KANJI_RE.search(re.sub(r"\{[^}]+\}", "", item["f"])):
             return k
     return kana(item["t"])
 
@@ -488,7 +488,7 @@ def align(cues, ww):
 # Sentences come with furigana markup ({kanji|reading}, from the book or from fugashi). The plain
 # text is split; words that would cut a furigana unit (高校生 -> 高校 + 生) are merged,
 # so the book's reading is kept. Result per sentence in DATA/words-cache.json.
-WORDS_CACHE = os.path.join(jl.DATA, "words-cache.json")
+WORDS_CACHE = os.path.join(rk.DATA, "words-cache.json")
 WORDS_VERSION = 2
 
 
@@ -545,7 +545,7 @@ def sentence_words(markup):
             if not d:
                 parts = [w for w in ws if "d" in w]
                 if parts:
-                    d = {"w": surface, "r": jl.hira(re.sub(r"\{([^|}]+)\|([^}]+)\}", r"\2", f)), "p": "",
+                    d = {"w": surface, "r": ja_text.hira(re.sub(r"\{([^|}]+)\|([^}]+)\}", r"\2", f)), "p": "",
                          "g": ["%s – %s" % (w["t"], w["d"]["g"][0].split(";")[0]) for w in parts]}
             if d:
                 item["d"] = d
@@ -557,7 +557,7 @@ def sentence_words(markup):
 
 
 def words_for(sentences):
-    cache = jl.read_json(WORDS_CACHE, {})
+    cache = rk.read_json(WORDS_CACHE, {})
     if cache.get("_v") != WORDS_VERSION:
         cache = {"_v": WORDS_VERSION}
     todo = [s for s in dict.fromkeys(sentences) if s and s not in cache]
@@ -565,7 +565,7 @@ def words_for(sentences):
         ensure_dict()
         for s in todo:
             cache[s] = sentence_words(s)
-        jl.write_json(WORDS_CACHE, cache)
+        rk.write_json(WORDS_CACHE, cache)
     return {"ok": True, "words": {s: cache[s] for s in sentences if s in cache}}
 
 
@@ -603,11 +603,11 @@ def build(video, code="ja", name="Japanese"):
         if cur[0] < nxt[0] < cur[1]:
             cur[1] = nxt[0]
     # Keep translations that were already stored when rebuilding
-    old = {c["t"]: c["en"] for c in jl.read_json(base + ".json", {}).get("cues", []) if c.get("en")}
+    old = {c["t"]: c["en"] for c in rk.read_json(base + ".json", {}).get("cues", []) if c.get("en")}
     result = []
     for i, (start, end, text, k) in enumerate(cues):
         if i % 25 == 0:
-            jl.progress("Preparing subtitles %d/%d …" % (i, len(cues)))
+            rk.progress("Preparing subtitles %d/%d …" % (i, len(cues)))
         cue = {"s": round(start, 3), "e": round(end, 3), "t": text, "w": words(text) if japanese else plain_words(text)}
         n = len(nospace(text))
         if k and all(a[0] < b[0] for a, b in zip(k, k[1:])) and k[-1][0] < n:
@@ -622,13 +622,13 @@ def build(video, code="ja", name="Japanese"):
     if sparse:
         ww = whisper_words(video, base)
         if ww:
-            jl.progress("Matching word timing …")
+            rk.progress("Matching word timing …")
             got = align(result, ww)
             for i in sparse:
                 if i in got:
                     result[i]["k"] = got[i]
                     timed += 1
-    jl.write_json(base + ".json", {"source": os.path.basename(vtt), "cues": result})
+    rk.write_json(base + ".json", {"source": os.path.basename(vtt), "cues": result})
     with open(base + ".srt", "w", encoding="utf-8") as f:
         for i, c in enumerate(result, 1):
             f.write("%d\n%s --> %s\n%s\n\n" % (i, srt_time(c["s"]), srt_time(c["e"]), c["t"]))
@@ -637,23 +637,23 @@ def build(video, code="ja", name="Japanese"):
 
 
 def translate(path, idx, code="ja", name="Japanese"):
-    data = jl.read_json(path, None)
+    data = rk.read_json(path, None)
     idx = int(idx)
     if not data or not 0 <= idx < len(data["cues"]):
-        jl.fail("Subtitle line not found")
+        rk.fail("Subtitle line not found")
     cue = data["cues"][idx]
     if cue.get("en"):
         return {"ok": True, "idx": idx, "en": cue["en"]}
     ctx = [c["t"] for c in data["cues"][max(0, idx - 3):idx]]
-    jt.progress = jl.progress
+    jt.progress = rk.progress
     try:
         en = jt.translate_line(cue["t"], ctx, lang=(code, name))
     except jt.TranslateError as e:
-        jl.fail("Translation failed: " + str(e))
+        rk.fail("Translation failed: " + str(e))
     # read fresh: another line might have been translated in the meantime
-    data = jl.read_json(path, data)
+    data = rk.read_json(path, data)
     data["cues"][idx]["en"] = en
-    jl.write_json(path, data)
+    rk.write_json(path, data)
     return {"ok": True, "idx": idx, "en": en}
 
 
@@ -663,18 +663,18 @@ def main():
         lang = tuple(a[2:4]) or ("ja", "Japanese")
         if lang[0] == "ja":
             ensure_venv()  # fugashi + JMdict; other languages need neither
-        jl.out(build(a[1], *lang))
+        rk.out(build(a[1], *lang))
     elif len(a) == 2 and a[0] == "words":
         ensure_venv()
-        jl.out(words_for(json.loads(a[1])))
+        rk.out(words_for(json.loads(a[1])))
     elif a[:1] == ["translate"] and len(a) in (3, 5):
-        jl.out(translate(a[1], a[2], *(a[3:5] or ("ja", "Japanese"))))
+        rk.out(translate(a[1], a[2], *(a[3:5] or ("ja", "Japanese"))))
     else:
-        jl.fail("usage: jp_subs.py build <video> [code name] | translate <json> <idx> [code name] | words <json-list>")
+        rk.fail("usage: jp_subs.py build <video> [code name] | translate <json> <idx> [code name] | words <json-list>")
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:  # noqa: BLE001  (errors as a JSON line to the UI)
-        jl.fail("%s: %s" % (type(e).__name__, e))
+        rk.fail("%s: %s" % (type(e).__name__, e))

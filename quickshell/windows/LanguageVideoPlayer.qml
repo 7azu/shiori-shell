@@ -45,7 +45,7 @@ PanelWindow {
     readonly property real hT: wT
     readonly property real coverK: clamp01(mk / 0.12)
     readonly property real contentK: clamp01((mk - 0.8) / 0.2)
-    readonly property bool hasSubs: st.cues.length > 0
+    readonly property bool hasSubs: LanguageSubtitleState.cues.length > 0
     readonly property real pad: Theme.px(20) * (1 - fullK) + Theme.px(14) * fullK
     property bool muted: false
     readonly property real shownVolume: muted ? 0 : st.videoVolume
@@ -357,8 +357,8 @@ PanelWindow {
                         visible: win.hasSubs
                         width: Theme.px(44)
                         glyph: "字"
-                        active: win.st.subsShown
-                        onClicked: win.st.setSubsShown(!win.st.subsShown)
+                        active: LanguageSubtitleState.subsShown
+                        onClicked: LanguageSubtitleState.setSubsShown(!LanguageSubtitleState.subsShown)
                     }
 
                     CardButton {
@@ -689,7 +689,7 @@ PanelWindow {
             Item {
                 id: subsArea
 
-                readonly property bool on: win.hasSubs && win.st.subsShown
+                readonly property bool on: win.hasSubs && LanguageSubtitleState.subsShown
 
                 // Clipped while expanding/collapsing: the box disappears with its surface instead of
                 // the text below still fading out. Only then - when open, the word explanation sticks up

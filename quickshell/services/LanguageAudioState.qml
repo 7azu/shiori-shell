@@ -3,6 +3,9 @@ import Quickshell
 import Quickshell.Io
 pragma Singleton
 
+// Language tool: the languages, the library of the chosen one, playback (video player, mpv for old mp3),
+// listening time and the remembered settings. Subtitles: LanguageSubtitleState; YouTube search and
+// downloads: LanguageDownloadState.
 Singleton {
     id: root
 
@@ -61,45 +64,18 @@ Singleton {
     property string playDir: downloadDir
     property string playLanguage: language
     readonly property string ipcSocket: "/tmp/mpv_japanese.sock"
-    // Subtitles for videos: yt-dlp puts the .vtt into .subs/, scripts/jp_subs.py turns them into
-    // <name>.json (words + dictionary) and <name>.srt (for mpv, only for timing)
-    readonly property string subsDir: playDir + "/.subs"
-    readonly property string subsScript: Qt.resolvedUrl("../scripts/jp_subs.py").toString().replace("file://", "")
     readonly property string prefsFile: Quickshell.stateDir + "/japanese-audio-prefs.json"
-    // YouTube login: yt-dlp reads the cookies fresh from Zen on every call (no cookie file)
-    readonly property string cookieArgs: "spec=$(\"$HOME/.config/quickshell/scripts/zen_cookies.sh\") && cookies=(--cookies-from-browser \"$spec\") || cookies=(); "
     // The picker is a normal entry in the PickerManager (before it had its own state with special cases
     // in the PickerWindow)
     readonly property bool isOpen: PickerManager.isOpen("language")
     property bool isPlaying: false
     property string currentFile: ""
-    property string statusText: ""
     property var library: []
     property var stats: ({
     })
-    property real downloadProgress: 0
-    property bool isDownloading: false
-    property bool isConverting: false
-    property bool cancelled: false
     property bool restarting: false
     property int startPollTries: 0
-    property string downloadTitle: ""
-    property string downloadError: ""
-    property bool isSearching: false
-    property string searchError: ""
-    property var searchResults: []
-    // YouTube search page by page: first page with Enter, more with "Load more"
-    readonly property int searchPageSize: 15
-    property string lastQuery: ""
-    property bool isLoadingMore: false
-    property bool hasMoreResults: false
-    // Cancelled search: ignore lines of the old yt-dlp process still in the buffer
-    property bool searchCancelled: false
     // ── Video + subtitles ──
-    // Download as audio (mp3) or video (mp4 + subtitles); remembered in prefsFile
-    // Now only videos (listening in the background works with them too); "audio" only stays readable for
-    // old prefs, but is no longer set
-    property string downloadMode: "video"
     // Morph picker <-> player: last position of the language panel (window coordinates of the monitor),
     // reported by the picker. The player grows out of it and shrinks back into it when going back.
     property rect pickerPanel: Qt.rect(0, 0, 0, 0)
@@ -122,8 +98,6 @@ Singleton {
     })
     property bool videoOpen: false
     signal videoCommand(string cmd, var arg)
-    // Show the subtitle bar (windows/LanguageSubtitles.qml)
-    property bool subsShown: true
     // File names without extension for which prepared subtitles exist
     property var subbed: ({
     })
@@ -131,13 +105,6 @@ Singleton {
     // { "<file>": {kind, size, mtime, duration, thumb} }; comes shortly after library
     property var meta: ({
     })
-    property bool isPreparingSubs: false
-    property string downloadedFile: ""
-    // Subtitles of the playing file and the line being spoken (-1 = none)
-    property var cues: []
-    property int cueIndex: -1
-    property int translatingIdx: -1
-    property string translateError: ""
     // Word clicked -> paused; it continues when the explanation is closed
     property bool resumeAfterLookup: false
     readonly property bool mpvRunning: mpvProc.running
@@ -148,8 +115,6 @@ Singleton {
     property real currentDuration: 0
     property double sessionStart: 0
     property double sessionCommitted: 0
-
-    signal downloadCompleted()
 
     function toggle() {
         PickerManager.toggle("language");
@@ -264,20 +229,15 @@ Singleton {
 
     function savePrefs() {
         prefsWriteProc.command = ["bash", "-c", 'mkdir -p "$(dirname "$1")" && printf "%s" "$2" > "$1"', "_", root.prefsFile, JSON.stringify({
-            "downloadMode": root.downloadMode,
+            "downloadMode": LanguageDownloadState.downloadMode,
             "language": root.language,
-            "subsShown": root.subsShown,
+            "subsShown": LanguageSubtitleState.subsShown,
             "videoVolume": root.videoVolume,
             "videoPositions": root.videoPositions,
             "lastVideos": root.lastVideos
         })];
         prefsWriteProc.running = false;
         prefsWriteProc.running = true;
-    }
-
-    function setDownloadMode(mode) {
-        downloadMode = mode;
-        savePrefs();
     }
 
     // Watch a video (row clicked in the picker, "Show"): loads it if not loaded yet and opens
@@ -333,7 +293,7 @@ Singleton {
         playLanguage = language;
         currentPosition = 0;
         currentDuration = 0;
-        cueIndex = -1;
+        LanguageSubtitleState.cueIndex = -1;
         videoLoaded = true;
         if (lastVideos[language] !== file) {
             let lv = Object.assign({
@@ -348,47 +308,10 @@ Singleton {
         });
     }
 
-    // YouTube's automatic subtitles without word times show two blocks at once, so every line officially lasts
-    // until the middle of the next one (up to 8 s overlap). videoPosition keeps a line until its end -> the next line
-    // came seconds late. A line ends where the next one starts (also done by jp_subs.py build; this covers files
-    // prepared before that).
-    function clipCues(list) {
-        const out = list.slice();
-        for (let i = 0; i + 1 < out.length; i++) {
-            if (out[i + 1].s < out[i].e && out[i + 1].s > out[i].s)
-                out[i] = Object.assign({
-                }, out[i], {
-                    "e": out[i + 1].s
-                });
-
-        }
-        return out;
-    }
-
-    // From the player: position (seconds) -> running subtitle line
+    // From the player: position (seconds); the subtitle state follows with the running line
     function videoPosition(sec) {
         currentPosition = sec;
-        let i = cueIndex;
-        // mostly it is the same or the next line
-        if (i >= 0 && i < cues.length && sec >= cues[i].s && sec < cues[i].e)
-            return ;
-
-        i = -1;
-        for (let k = 0; k < cues.length; k++) {
-            if (sec >= cues[k].s && sec < cues[k].e) {
-                i = k;
-                break;
-            }
-            if (cues[k].s > sec)
-                break;
-
-        }
-        cueIndex = i;
-    }
-
-    function setSubsShown(on) {
-        subsShown = on;
-        savePrefs();
+        LanguageSubtitleState.showAt(sec);
     }
 
     function setPaused(on) {
@@ -424,57 +347,6 @@ Singleton {
             setPaused(false);
 
         resumeAfterLookup = false;
-    }
-
-    // Videos whose .vtt is there but was never prepared (downloaded before other languages had subtitles, or a
-    // failed preparation): prepare them one after the other in the background. Each one is tried once per run of
-    // the shell, so a video without usable subtitles is not tried again on every opening.
-    property var subsTried: ({
-    })
-    property var subsQueue: []
-
-    function prepareMissingSubs(vttStems) {
-        const code = languageCodes[language];
-        if (!code)
-            return ;
-
-        const add = [];
-        for (const stem in vttStems) {
-            const key = downloadDir + "/" + stem;
-            if (subbed[stem] || subsTried[key] || library.indexOf(stem + ".mp4") < 0)
-                continue;
-
-            subsTried[key] = true;
-            add.push([downloadDir + "/" + stem + ".mp4", code, language]);
-        }
-        if (add.length === 0)
-            return ;
-
-        subsQueue = subsQueue.concat(add);
-        if (!lateSubsProc.running)
-            nextLateSubs();
-    }
-
-    function nextLateSubs() {
-        if (subsQueue.length === 0)
-            return ;
-
-        const job = subsQueue[0];
-        subsQueue = subsQueue.slice(1);
-        lateSubsProc.command = ["python3", subsScript, "build"].concat(job);
-        lateSubsProc.running = true;
-    }
-
-    function translateCue(idx) {
-        // Also covers the T key in the video player: without a translator (translation off) nothing happens
-        if (idx < 0 || idx >= cues.length || cues[idx].en || translateProc.running || LanguageReadingState.translator === "")
-            return ;
-
-        translatingIdx = idx;
-        translateError = "";
-        // The subtitles belong to the playing file's language (playLanguage), not to the one shown in the picker
-        translateProc.command = ["python3", root.subsScript, "translate", root.subsDir + "/" + stemOf(currentFile) + ".json", String(idx), languageCodes[playLanguage] || playLanguage.toLowerCase(), playLanguage];
-        translateProc.running = true;
     }
 
     function onMpvEvent(line) {
@@ -513,115 +385,6 @@ Singleton {
     function loadStats() {
         statsReadProc.running = false;
         statsReadProc.running = true;
-    }
-
-    // ── Suche ──
-    function searchVideos(query) {
-        if (query.trim() === "")
-            return ;
-
-        searchResults = [];
-        lastQuery = query;
-        runSearch(0);
-    }
-
-    function loadMoreResults() {
-        if (isSearching || !hasMoreResults || lastQuery === "")
-            return ;
-
-        isLoadingMore = true;
-        runSearch(searchResults.length);
-    }
-
-    // Fetches the results offset+1 .. offset+searchPageSize (ytsearchN only gives the first N,
-    // --playlist-items cuts off the ones already shown)
-    function runSearch(offset) {
-        const end = offset + searchPageSize;
-        // Cancel a running search silently, its end should not reset the status
-        searchCancelled = true;
-        searchProc.running = false;
-        searchCancelled = false;
-        isSearching = true;
-        searchError = "";
-        // Extend PATH, use the Zen cookies, clients as for the download (see root.ytClients)
-        const cmd = "export PATH=\"$PATH:$HOME/.cargo/bin:$HOME/.deno/bin:$HOME/.local/bin:/usr/local/bin\"; " + root.cookieArgs + "exec yt-dlp \"ytsearch$2:$1\" --playlist-items \"$3:$2\" --flat-playlist --dump-json \"${cookies[@]}\" --extractor-args \"" + root.ytClients + "\"";
-        searchProc.command = ["bash", "-c", cmd, "qs-ytsearch", lastQuery, String(end), String(offset + 1)];
-        searchProc.running = true;
-    }
-
-    function clearSearch() {
-        searchCancelled = true;
-        searchProc.running = false;
-        searchResults = [];
-        searchError = "";
-        isSearching = false;
-        isLoadingMore = false;
-        hasMoreResults = false;
-        lastQuery = "";
-    }
-
-    // ── Download ──
-    // YouTube clients for yt-dlp: its default ones plus web_embedded (got around 403/bot checks), so the
-    // format is picked from both. web_embedded alone sometimes only offers an HLS stream (format 96,
-    // "SABR-only streaming experiment") on which yt-dlp stayed at 0 bytes without an error (found on a
-    // fresh install, 2026-11-24)
-    readonly property string ytClients: "youtube:player_client=default,web_embedded"
-
-    // defaultClient: second try with yt-dlp's default clients only (see the retry in downloadProc.onExited)
-    function downloadVideo(url, title, defaultClient) {
-        if (isDownloading)
-            return ;
-
-        downloadUrl = url;
-        downloadDefaultClient = defaultClient === true;
-
-        downloadTitle = title;
-        downloadError = "";
-        isDownloading = true;
-        isConverting = false;
-        downloadProgress = 0;
-        statusText = "Downloading...";
-        downloadProc.running = false;
-        cancelled = false;
-        downloadedFile = "";
-        downloadLanguage = language;
-        // Video: mp4 (max. 1080p, H.264 for easy playback) + subtitles (real and
-        // automatic; jp_subs.py decides which one is taken) into .subs/
-        const format = root.downloadMode === "video" ? "-f \"bv*[height<=1080][vcodec^=avc1]+ba[ext=m4a]/bv*[height<=1080]+ba/b\" --merge-output-format mp4 " + (root.languageCode !== "" ? "--ignore-errors --write-subs --write-auto-subs --sub-langs \"" + root.subLangs(root.languageCode) + "\" --sub-format vtt " + "-o \"subtitle:$1/.subs/%(title)s.%(ext)s\" " : "") : "-x --audio-format mp3 ";
-        // Extend PATH, use the Zen cookies, first with both clients (see root.ytClients)
-        const client = downloadDefaultClient ? "" : "--extractor-args \"" + root.ytClients + "\" ";
-        const cmd = "export PATH=\"$PATH:$HOME/.cargo/bin:$HOME/.deno/bin:$HOME/.local/bin:/usr/local/bin\"; " + root.cookieArgs + "mkdir -p \"$1\" && exec yt-dlp --newline --no-colors --no-playlist --playlist-items 1 " + format + "\"${cookies[@]}\" " + client + "--write-thumbnail --convert-thumbnails jpg -o \"thumbnail:$1/.thumbs/%(title)s.%(ext)s\" " + "-o \"$1/%(title)s.%(ext)s\" -- \"$2\" 2>&1";
-        downloadProc.command = ["bash", "-c", cmd, "qs-ytdlp", downloadDir, url];
-        downloadProc.running = true;
-    }
-
-    // yt-dlp languages: the language, its original track (ja-orig) and regional variants (pt-BR, zh-Hans, es-419).
-    // Not "ja-.*": that also takes YouTube's machine translations into the language (ja-bn = from Bengali ...),
-    // one request each, and YouTube answers those with 429 Too Many Requests
-    function subLangs(code) {
-        return code + "," + code + "-orig," + code + "-[A-Z0-9].*";
-    }
-
-    property string downloadLanguage: "Japanese"
-    property string downloadUrl: ""
-    property bool downloadDefaultClient: false
-
-    function cancelDownload() {
-        if (!isDownloading)
-            return ;
-
-        cancelled = true;
-        downloadProc.running = false;
-    }
-
-    function downloadFromInput(queryOrUrl) {
-        queryOrUrl = queryOrUrl.trim();
-        if (queryOrUrl.startsWith("http://") || queryOrUrl.startsWith("https://") || queryOrUrl.startsWith("www.")) {
-            downloadVideo(queryOrUrl, "Video");
-            return true;
-        }
-        searchVideos(queryOrUrl);
-        return false;
     }
 
     // ── IPC ──
@@ -779,19 +542,6 @@ Singleton {
 
     }
 
-    // Prepares subtitles that were missing (prepareMissingSubs), one video at a time; afterwards the list is read
-    // again, so the player finds the new .json. A Process does not start again from its own onExited -> callLater.
-    Process {
-        id: lateSubsProc
-
-        onExited: {
-            if (root.subsQueue.length > 0)
-                Qt.callLater(root.nextLateSubs);
-            else
-                root.loadLibrary();
-        }
-    }
-
     Process {
         id: listProc
 
@@ -820,7 +570,7 @@ Singleton {
             if (JSON.stringify(nextSubbed) !== JSON.stringify(root.subbed))
                 root.subbed = nextSubbed;
 
-            root.prepareMissingSubs(nextVtt);
+            LanguageSubtitleState.prepareMissingSubs(nextVtt);
             metaProc.running = false;
             metaProc.running = true;
         }
@@ -942,162 +692,6 @@ Singleton {
     }
 
     Process {
-        id: searchProc
-
-        property string errBuffer: ""
-        property int received: 0
-
-        onRunningChanged: {
-            if (!running) {
-                if (root.searchCancelled)
-                    return ;
-
-                root.isSearching = false;
-                root.isLoadingMore = false;
-                // Got a full page -> there are probably more
-                root.hasMoreResults = received >= root.searchPageSize;
-                if (errBuffer !== "") {
-                    console.warn("[LanguageAudio] Search error:", errBuffer);
-                    root.searchError = errBuffer.replace(/^ERROR:\s*/gm, "").trim();
-                }
-            } else {
-                errBuffer = "";
-                received = 0;
-            }
-        }
-
-        stdout: SplitParser {
-            onRead: (data) => {
-                if (root.searchCancelled)
-                    return ;
-
-                try {
-                    const obj = JSON.parse(data);
-                    if (obj && obj.id)
-                        searchProc.received++;
-
-                    if (obj && obj.title && obj.id && !root.searchResults.some((r) => {
-                        return r.id === obj.id;
-                    })) {
-                        let arr = root.searchResults.slice();
-                        arr.push({
-                            "id": obj.id,
-                            "title": obj.title,
-                            "url": "https://www.youtube.com/watch?v=" + obj.id,
-                            "duration": obj.duration_string || "",
-                            "thumbnail": obj.thumbnails ? obj.thumbnails[obj.thumbnails.length - 1].url : "",
-                            "uploader": obj.uploader || ""
-                        });
-                        root.searchResults = arr;
-                    }
-                } catch (e) {
-                }
-            }
-        }
-
-        stderr: SplitParser {
-            onRead: (data) => {
-                searchProc.errBuffer += data + "\n";
-            }
-        }
-
-    }
-
-    Process {
-        id: downloadProc
-
-        onExited: (exitCode, exitStatus) => {
-            if (root.cancelled) {
-                root.cancelled = false;
-                root.isDownloading = false;
-                root.isConverting = false;
-                root.downloadProgress = 0;
-                root.downloadTitle = "";
-                root.statusText = "";
-                return ;
-            }
-            if (root.isDownloading) {
-                root.isDownloading = false;
-                root.isConverting = false;
-                if (exitCode === 0 && root.downloadedFile !== "" && root.languageCodes[root.downloadLanguage]) {
-                    // Video: still prepare the subtitles (every language with a known code; furigana and the
-                    // dictionary only for Japanese, see scripts/jp_subs.py), only then the download counts as finished
-                    root.isDownloading = true;
-                    root.isConverting = true;
-                    root.isPreparingSubs = true;
-                    root.statusText = "Preparing subtitles...";
-                    subsProc.command = ["python3", root.subsScript, "build", root.downloadedFile, root.languageCodes[root.downloadLanguage], root.downloadLanguage];
-                    subsProc.running = true;
-                    return ;
-                } else if (exitCode === 0) {
-                    root.statusText = "Download finished";
-                    root.loadLibrary();
-                    root.downloadCompleted();
-                } else {
-                    if (root.downloadError === "")
-                        root.downloadError = "Exit code " + exitCode;
-
-                    // web_embedded with cookies of a browser that is not logged in to YouTube: "This video is
-                    // unavailable (152 - 18)" for every video (found on a fresh install). Once more with yt-dlp's
-                    // default client; a Process does not start again from its own onExited -> callLater
-                    if (!root.downloadDefaultClient && /unavailable/i.test(root.downloadError)) {
-                        const url = root.downloadUrl;
-                        const title = root.downloadTitle;
-                        root.statusText = "Retrying...";
-                        Qt.callLater(() => {
-                            return root.downloadVideo(url, title, true);
-                        });
-                        return ;
-                    }
-
-                    console.warn("[LanguageAudio] download failed (" + exitCode + "): " + root.downloadError);
-                    root.statusText = "Download failed";
-                }
-                statusTimer.restart();
-            }
-        }
-
-        stdout: SplitParser {
-            onRead: (data) => {
-                const pm = data.match(/\[download\]\s+([\d.]+)%/);
-                if (pm)
-                    root.downloadProgress = parseFloat(pm[1]) / 100;
-
-                if (data.indexOf("[ExtractAudio]") >= 0)
-                    root.isConverting = true;
-
-                const line = data.trim();
-                if (line.includes("ERROR") && root.downloadError === "")
-                    root.downloadError = line.replace(/^ERROR:\s*/, "").trim();
-
-                // Remember the finished mp4 (merged, single part or already there) -> subtitles
-                const mp4 = data.match(/\[Merger\] Merging formats into "(.+\.mp4)"/) || data.match(/\[download\]\s+Destination:\s+(.+\.mp4)$/) || data.match(/\[download\]\s+(.+\.mp4) has already been downloaded/);
-                if (mp4 && root.downloadMode === "video" && !/\.f\d+\.mp4$/.test(mp4[1]))
-                    root.downloadedFile = mp4[1].trim();
-
-                const dm = data.match(/\[download\]\s+Destination:\s+(.+)/);
-                if (dm && root.downloadTitle === "Video") {
-                    const parts = dm[1].trim().split('/');
-                    root.downloadTitle = parts[parts.length - 1].replace(/\.[^.]+$/, "");
-                }
-            }
-        }
-
-    }
-
-    Timer {
-        id: statusTimer
-
-        interval: 3500
-        onTriggered: {
-            root.statusText = "";
-            root.downloadProgress = 0;
-            root.downloadTitle = "";
-            root.downloadError = "";
-        }
-    }
-
-    Process {
         id: ipcProc
     }
 
@@ -1201,104 +795,6 @@ Singleton {
 
     }
 
-    // Load the subtitles of the playing file
-    FileView {
-        path: root.currentFile !== "" && (root.playDir !== root.downloadDir || root.hasSubs(root.currentFile)) ? root.subsDir + "/" + root.stemOf(root.currentFile) + ".json" : ""
-        onPathChanged: {
-            root.cues = [];
-            root.cueIndex = -1;
-        }
-        onLoaded: {
-            try {
-                root.cues = root.clipCues(JSON.parse(text()).cues || []);
-            } catch (e) {
-                root.cues = [];
-            }
-        }
-    }
-
-    Process {
-        id: subsProc
-
-        property string lastLine: ""
-
-        onRunningChanged: {
-            if (running) {
-                lastLine = "";
-                return ;
-            }
-            let res = {
-            };
-            try {
-                res = JSON.parse(lastLine);
-            } catch (e) {
-            }
-            root.isPreparingSubs = false;
-            root.isDownloading = false;
-            root.isConverting = false;
-            if (res.ok === false) {
-                // The video is there, only the subtitles are missing -> count it as finished anyway
-                console.warn("[LanguageAudio] subtitles failed: " + res.error);
-                root.statusText = "Downloaded · subtitles failed";
-            } else {
-                root.statusText = res.cues > 0 ? "Download finished · " + res.cues + " subtitle lines" : "Downloaded · no " + root.downloadLanguage + " subtitles";
-            }
-            root.loadLibrary();
-            root.downloadCompleted();
-            statusTimer.restart();
-        }
-
-        stdout: SplitParser {
-            onRead: (data) => {
-                subsProc.lastLine = data;
-                try {
-                    const p = JSON.parse(data).progress;
-                    if (p)
-                        root.statusText = p;
-
-                } catch (e) {
-                }
-            }
-        }
-
-    }
-
-    Process {
-        id: translateProc
-
-        property string lastLine: ""
-
-        onRunningChanged: {
-            if (running) {
-                lastLine = "";
-                return ;
-            }
-            try {
-                const res = JSON.parse(lastLine);
-                if (res.ok && res.idx < root.cues.length) {
-                    let arr = root.cues.slice();
-                    arr[res.idx] = Object.assign({
-                    }, arr[res.idx], {
-                        "en": res.en
-                    });
-                    root.cues = arr;
-                } else if (!res.ok) {
-                    root.translateError = res.error || "Translation failed";
-                }
-            } catch (e) {
-                root.translateError = "Translation failed";
-            }
-            root.translatingIdx = -1;
-        }
-
-        stdout: SplitParser {
-            onRead: (data) => {
-                translateProc.lastLine = data;
-            }
-        }
-
-    }
-
     Process {
         id: prefsWriteProc
     }
@@ -1322,7 +818,7 @@ Singleton {
                     }
 
                     if (typeof p.subsShown === "boolean")
-                        root.subsShown = p.subsShown;
+                        LanguageSubtitleState.subsShown = p.subsShown;
 
                     if (p.videoPositions && typeof p.videoPositions === "object")
                         root.videoPositions = p.videoPositions;
@@ -1442,6 +938,5 @@ Singleton {
             }
         }
     }
-
 
 }

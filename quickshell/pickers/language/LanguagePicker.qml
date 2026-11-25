@@ -1,9 +1,18 @@
 import "../../common"
 import "../../services"
 import "../../windows"
-import "../parts"
 import QtQuick
 
+// Language tool (Super+J): the core. State (language choice or a language, tab, search text), size and morphs
+// of the panel, the keyboard, and the layout frame. The surfaces are parts in this folder, which get this
+// object as picker:
+//   LanguageChooser (+ LanguageAddForm)   the languages as tiles when opening, adding a language
+//   LanguageHeader                        name of the language, today's listening time, search field, tabs
+//   LanguageDownloadCard                  the running download
+//   LanguageLibrary (+ Library*)          Listen tab: stage and video grid
+//   LanguageSearch                        YouTube results
+//   LanguageStats (+ ListenStats)         Stats tab
+//   LanguageReader (+ Reader*)            Read tab: shelf and reader
 Item {
     id: root
 
@@ -21,6 +30,8 @@ Item {
     // lead from a language back here.
     property bool choosing: true
     readonly property var chooser: chooserView
+    // The search field lives in the header (LanguageHeader): the core reads and clears its text and gives it the focus
+    readonly property var searchInput: header.searchInput
     // Two-phase view change like MediaPicker.setCategory.
     property real switchOut: 0
     property real switchIn: 1
@@ -81,7 +92,7 @@ Item {
     property bool intro: true
     property real shown: 0
     property string activePeriod: "day"
-    readonly property bool isSearchMode: searchQuery !== "" && (LanguageAudioState.isSearching || LanguageAudioState.searchResults.length > 0)
+    readonly property bool isSearchMode: searchQuery !== "" && (LanguageDownloadState.isSearching || LanguageDownloadState.searchResults.length > 0)
     // ── File search: typing filters the library (all words must occur),
     // Enter searches on YouTube instead ──
     readonly property var terms: searchQuery.toLowerCase().split(/\s+/).filter((t) => {
@@ -107,76 +118,14 @@ Item {
             return ((meta[b] && meta[b].mtime) || 0) - ((meta[a] && meta[a].mtime) || 0) || a.localeCompare(b);
         });
     }
-    readonly property var results: LanguageAudioState.searchResults
-    // ───────────────────────── Stats data ─────────────────────────
-    readonly property var currentStats: parseTime(LanguageAudioState.getStatsForPeriod(activePeriod))
-    readonly property real currentMinutes: (parseInt(currentStats.h) * 60) + parseInt(currentStats.m)
-    readonly property real maxMinutes: {
-        switch (activePeriod) {
-        case "day":
-            return 60;
-        case "week":
-            return 300;
-        case "month":
-            return 1200;
-        case "year":
-            return 14400;
-        }
-        return 60;
-    }
-    readonly property string goalLabel: Math.round(maxMinutes / 60) + "h"
-    readonly property real progress: Math.min(1, currentMinutes / maxMinutes)
-    property real shownMinutes: currentMinutes
-    property real displayProgress: progress
-    readonly property real introK: stage(statsProgress, 0.1)
-    readonly property real heroMinutes: shownMinutes * introK
-    readonly property real heroProgress: displayProgress * introK
-    readonly property var weekData: {
-        const s = LanguageAudioState.stats || ({
-        });
-        const out = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            out.push({
-                "label": Qt.formatDate(d, "ddd"),
-                "secs": s[Qt.formatDate(d, "yyyy-MM-dd")] || 0,
-                "today": i === 0
-            });
-        }
-        return out;
-    }
-    readonly property real weekMaxSecs: {
-        let m = 1;
-        for (let i = 0; i < weekData.length; i++) m = Math.max(m, weekData[i].secs)
-        return m;
-    }
-    readonly property real weekAvgMinutes: {
-        let t = 0;
-        for (let i = 0; i < weekData.length; i++) t += weekData[i].secs
-        return t / 7 / 60;
-    }
-    // Header: listening time today against the daily goal (the same goal as "Day" in the stats tab)
-    readonly property real dailyGoal: 60
-    readonly property real todayMinutes: ((LanguageAudioState.stats || ({}))[Qt.formatDate(new Date(), "yyyy-MM-dd")] || 0) / 60
-    readonly property int streak: {
-        const s = LanguageAudioState.stats || ({
-        });
-        let n = 0;
-        for (let i = 0; i < 3650; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const v = s[Qt.formatDate(d, "yyyy-MM-dd")] || 0;
-            if (v > 0)
-                n++;
-            else if (i > 0)
-                break;
-        }
-        return n;
+    readonly property var results: LanguageDownloadState.searchResults
+    // Listening time in numbers for the stats tab and the header (ListenStats.qml)
+    readonly property ListenStats listenStats: ListenStats {
+        picker: root
     }
     // ───────────────────────── Body sizing ─────────────────────────
     readonly property real libH: libraryList.wanted
-    readonly property real moreH: LanguageAudioState.hasMoreResults || LanguageAudioState.isLoadingMore ? 52 : 0
+    readonly property real moreH: LanguageDownloadState.hasMoreResults || LanguageDownloadState.isLoadingMore ? 52 : 0
     readonly property real searchH: Math.min(results.length * 64 + moreH, 448) + 40
     readonly property real statsH: statsView.implicitHeight
     readonly property real readH: Math.round(Math.max(520, Math.min(readBig ? 4000 : 900, height - targetTop - headH - 2 * pad - (readBig ? 24 : 40))))
@@ -190,18 +139,9 @@ Item {
     property real furiK: LanguageReadingState.showFurigana ? 1 : 0
     property real libraryProgress: (filter === "library" && !isSearchMode && !choosing) ? 1 : 0
     property real searchProgress: (filter === "library" && isSearchMode && !choosing) ? 1 : 0
-    readonly property bool showDl: LanguageAudioState.isDownloading || LanguageAudioState.downloadError !== ""
+    readonly property bool showDl: LanguageDownloadState.isDownloading || LanguageDownloadState.downloadError !== ""
 
     // ───────────────────────── Helpers ─────────────────────────
-    function parseTime(str) {
-        const h = str.match(/(\d+)h/);
-        const m = str.match(/(\d+)m/);
-        return {
-            "h": h ? h[1] : "0",
-            "m": m ? m[1] : "0"
-        };
-    }
-
     function formatTime(seconds) {
         if (!seconds || seconds < 0 || isNaN(seconds))
             return "0:00";
@@ -216,88 +156,6 @@ Item {
             return h + ":" + mStr + ":" + sStr;
         }
         return m + ":" + sStr;
-    }
-
-    function formatMinutes(mins) {
-        const t = Math.round(mins);
-        if (t < 60)
-            return t + "m";
-
-        return Math.floor(t / 60) + "h " + (t % 60) + "m";
-    }
-
-    // ── Read tab: clickable words ──
-    // Paragraph [{ja, …}, …] -> words with sentence number si. Words come from LanguageReadingState.words
-    // (scripts/jp_subs.py); while they are missing, the old character tokens (not clickable). Punctuation
-    // sticks to the word before (never at the start of a line), opening brackets to the word after.
-    function wordItems(para) {
-        const raw = [];
-        for (let si = 0; si < para.length; si++) {
-            const ws = LanguageReadingState.words[para[si].ja];
-            if (ws) {
-                for (const w of ws) raw.push({
-                    "t": w.t,
-                    "f": w.f || "",
-                    "word": w.d ? w : null,
-                    "gap": !!w.gap,
-                    "si": si
-                })
-            } else {
-                for (const tk of LanguageReadingState.tokens(para[si].ja, si)) raw.push({
-                    "t": tk.t,
-                    "f": tk.r ? "{" + tk.t + "|" + tk.r + "}" : "",
-                    "word": null,
-                    "gap": tk.gap,
-                    "si": si
-                })
-            }
-        }
-        const out = [];
-        let head = "";
-        for (const it of raw) {
-            if (!it.word && /^[「『（(【〈《“]+$/.test(it.t)) {
-                head += it.t;
-                continue;
-            }
-            if (!it.word && out.length > 0 && !out[out.length - 1].gap && /^[、。，．！？!?…」』）)】〉》”・〜ー]+$/.test(it.t)) {
-                out[out.length - 1].tail += it.t;
-                continue;
-            }
-            it.head = head;
-            it.tail = "";
-            head = "";
-            out.push(it);
-        }
-        return out;
-    }
-
-    // Furigana markup -> [{t, r}] (kanji with reading, kana in between in one piece)
-    function segs(f, t) {
-        const src = f || t;
-        const out = [];
-        const re = /\{([^|}]+)\|([^}]+)\}/g;
-        let last = 0;
-        let m;
-        while ((m = re.exec(src)) !== null) {
-            if (m.index > last)
-                out.push({
-                "t": src.slice(last, m.index),
-                "r": ""
-            });
-
-            out.push({
-                "t": m[1],
-                "r": m[2]
-            });
-            last = re.lastIndex;
-        }
-        if (last < src.length)
-            out.push({
-            "t": src.slice(last),
-            "r": ""
-        });
-
-        return out;
     }
 
     function clearSearchText() {
@@ -368,7 +226,7 @@ Item {
         if (pendingLanguage === "") {
             if (searchInput.text !== "") {
                 searchInput.text = "";
-                LanguageAudioState.clearSearch();
+                LanguageDownloadState.clearSearch();
             }
             chooserView.reset();
         } else {
@@ -430,8 +288,8 @@ Item {
 
         let i = kbIndex < 0 ? (delta > 0 ? 0 : n - 1) : kbIndex + delta;
         // YouTube: beyond the end = load more results (like "Load more")
-        if (kbList === "youtube" && i >= n && LanguageAudioState.hasMoreResults && !LanguageAudioState.isLoadingMore)
-            LanguageAudioState.loadMoreResults();
+        if (kbList === "youtube" && i >= n && LanguageDownloadState.hasMoreResults && !LanguageDownloadState.isLoadingMore)
+            LanguageDownloadState.loadMoreResults();
 
         kbIndex = Math.max(0, Math.min(n - 1, i));
         const v = kbView();
@@ -460,8 +318,8 @@ Item {
             if (!r)
                 return false;
 
-            if (!LanguageAudioState.isDownloading)
-                LanguageAudioState.downloadVideo(r.url, r.title);
+            if (!LanguageDownloadState.isDownloading)
+                LanguageDownloadState.downloadVideo(r.url, r.title);
 
             return true;
         }
@@ -493,6 +351,82 @@ Item {
             return true;
         }
         return false;
+    }
+
+    // Keys of the search field (it has the focus inside a language): tabs, the keyboard selection, chapters
+    // in the reader, Enter and Esc
+    function handleKey(event) {
+        // Ctrl+J/K = arrow down/up, the same in all pickers (PickerManager.navKey)
+        const key = PickerManager.navKey(event);
+        // Tab / Shift+Tab switch the tabs list/Read/stats (like a click at the top right)
+        if (key === Qt.Key_Tab || key === Qt.Key_Backtab) {
+            const tabs = root.tabKeys;
+            const dir = (key === Qt.Key_Backtab || (event.modifiers & Qt.ShiftModifier)) ? -1 : 1;
+            root.filter = tabs[(tabs.indexOf(root.filter) + dir + tabs.length) % tabs.length];
+            event.accepted = true;
+            return ;
+        }
+        // Read tab: Ctrl+H/L = left/right (shelf: selection, reader: chapter). Only here and
+        // not in navKey, because Ctrl+H/L may be taken in other pickers. Unlike the
+        // arrows they move no text cursor -> allowed even without a selection / with search text
+        if (root.filter === "read" && (event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_H || event.key === Qt.Key_L)) {
+            const dir = event.key === Qt.Key_L ? 1 : -1;
+            if (LanguageReadingState.view === "reader")
+                LanguageReadingState.step(dir);
+            else if (root.kbList === "shelf")
+                root.kbMove(dir);
+            event.accepted = true;
+            return ;
+        }
+        // Reading: arrow keys change the chapter (while nothing is typed)
+        if (root.filter === "read" && searchInput.text === "" && LanguageReadingState.view === "reader" && (key === Qt.Key_Left || key === Qt.Key_Right)) {
+            LanguageReadingState.step(key === Qt.Key_Right ? 1 : -1);
+            event.accepted = true;
+            return ;
+        }
+        // Keyboard selection in the visible list (audio, YouTube, shelf, Aozora)
+        if (root.kbList !== "") {
+            const grid = root.kbList === "shelf";
+            if (key === Qt.Key_Down || key === Qt.Key_Up) {
+                const direction = key === Qt.Key_Down ? 1 : -1;
+                root.kbMove(root.kbList === "audio" ? libraryList.verticalStep(root.kbIndex, direction) : direction * (grid ? readView.bookGrid.columns : 1));
+                event.accepted = true;
+                return ;
+            }
+            // Left/right only on the shelf and only with a selection, otherwise they move the text cursor
+            if ((grid || root.kbList === "audio") && root.kbIndex >= 0 && (key === Qt.Key_Left || key === Qt.Key_Right)) {
+                root.kbMove(key === Qt.Key_Right ? 1 : -1);
+                event.accepted = true;
+                return ;
+            }
+            // Enter with a selection runs it, without a selection Enter searches as before (onAccepted)
+            if ((key === Qt.Key_Return || key === Qt.Key_Enter) && root.kbIndex >= 0 && root.kbActivate()) {
+                event.accepted = true;
+                return ;
+            }
+        }
+        // Escape while reading: first the search results, then back to the shelf, then close
+        if (key === Qt.Key_Escape && root.filter === "read" && searchInput.text === "") {
+            if (readView.pickedWord !== null || readView.pickedSentence !== null)
+                readView.closePick();
+            else if (LanguageReadingState.results !== null || LanguageReadingState.searching)
+                LanguageReadingState.clearResults();
+            else if (LanguageReadingState.view === "reader")
+                LanguageReadingState.closeBook();
+            else
+                root.backToChooser();
+            event.accepted = true;
+            return ;
+        }
+        if (key === Qt.Key_Escape) {
+            if (searchInput.text !== "") {
+                searchInput.text = "";
+                LanguageDownloadState.clearSearch();
+            } else {
+                root.backToChooser();
+            }
+            event.accepted = true;
+        }
     }
 
     function stage(p, d) {
@@ -570,11 +504,11 @@ Item {
         function onDownloadCompleted() {
             searchInput.text = "";
             root.searchQuery = "";
-            LanguageAudioState.clearSearch();
+            LanguageDownloadState.clearSearch();
             root.filter = "library";
         }
 
-        target: LanguageAudioState
+        target: LanguageDownloadState
     }
 
     Timer {
@@ -684,301 +618,10 @@ Item {
             }
 
             // ═══════════ Header ═══════════
-            Item {
+            LanguageHeader {
                 id: header
 
-                width: parent.width
-                height: root.choosing ? 0 : root.headH
-                opacity: root.choosing ? 0 : 1
-                visible: height > 0.5
-                clip: true
-
-                Behavior on height {
-                    Smooth {
-                        duration: 420
-                    }
-
-                }
-
-                // Title row: back + name of the language (native name big, English name small next to it),
-                // on the right today's listening time as a small ring (click = stats)
-                Item {
-                    id: titleRow
-
-                    width: parent.width
-                    height: root.titleH
-
-                    Rectangle {
-                        id: backBtn
-
-                        // Flush with the search field: the header clips (for its height animation), at x: -4 the
-                        // left edge of the round hover pill was cut off
-                        x: 0
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 32
-                        height: 32
-                        radius: height / 2
-                        color: backMouse.containsMouse ? Theme.glassHover : WalColors.withAlpha(WalColors.color7, 0)
-                        scale: backMouse.pressed ? 0.9 : 1
-
-                        Text {
-                            anchors.centerIn: parent
-                            anchors.horizontalCenterOffset: -1
-                            text: String.fromCodePoint(0xF053)
-                            color: backMouse.containsMouse ? Theme.text : Theme.textDim
-                            font.family: Theme.font
-                            font.pixelSize: 12
-                        }
-
-                        MouseArea {
-                            id: backMouse
-
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.backToChooser()
-                        }
-
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: 140
-                            }
-
-                        }
-
-                        Behavior on scale {
-                            Springy {
-                            }
-
-                        }
-
-                    }
-
-                    Text {
-                        id: langTitle
-
-                        readonly property string nativeName: LanguageAudioState.nativeOf(LanguageAudioState.language)
-
-                        anchors.left: backBtn.right
-                        anchors.leftMargin: 8
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: nativeName !== "" ? nativeName : LanguageAudioState.language
-                        color: Theme.text
-                        // Latin names in the serif (like the shell's big titles), otherwise a font with the characters
-                        font.family: /^[\u0000-\u024F\s]+$/.test(text) ? Theme.fontDisplay : root.jp
-                        font.pixelSize: 24
-                        font.weight: /^[\u0000-\u024F\s]+$/.test(text) ? Font.Normal : Font.Medium
-                    }
-
-                    Text {
-                        anchors.left: langTitle.right
-                        anchors.leftMargin: 12
-                        anchors.baseline: langTitle.baseline
-                        visible: langTitle.nativeName !== ""
-                        text: LanguageAudioState.language.toUpperCase()
-                        color: Theme.textFaint
-                        font.family: Theme.fontUi
-                        font.pixelSize: Theme.sizeMicro
-                        font.weight: Font.DemiBold
-                        font.letterSpacing: Theme.microSpacing
-                    }
-
-                    Row {
-                        id: today
-
-                        anchors.right: parent.right
-                        anchors.rightMargin: 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 10
-                        opacity: todayMouse.containsMouse ? 1 : 0.85
-
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 1
-
-                            Text {
-                                anchors.right: parent.right
-                                text: Math.floor(root.todayMinutes) + " / " + Math.round(root.dailyGoal) + " min"
-                                color: Theme.text
-                                font.family: Theme.fontUi
-                                font.pixelSize: Theme.sizeBody
-                                font.weight: Font.Medium
-                                font.features: Theme.tabular
-                            }
-
-                            Text {
-                                anchors.right: parent.right
-                                text: root.streak > 1 ? root.streak + "-DAY STREAK" : "TODAY"
-                                color: Theme.textFaint
-                                font.family: Theme.fontUi
-                                font.pixelSize: Theme.sizeMicro
-                                font.weight: Font.DemiBold
-                                font.letterSpacing: Theme.microSpacing
-                            }
-
-                        }
-
-                        ProgressRing {
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 26
-                            height: 26
-                            thickness: 3
-                            color: Theme.accent
-                            trackColor: Theme.track
-                            value: Math.min(1, root.todayMinutes / root.dailyGoal)
-                        }
-
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: 140
-                            }
-
-                        }
-
-                    }
-
-                    MouseArea {
-                        id: todayMouse
-
-                        anchors.fill: today
-                        anchors.margins: -6
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.filter = "stats"
-                    }
-
-                }
-
-                SearchField {
-                    id: searchInput
-
-                    anchors.left: parent.left
-                    anchors.right: segmented.left
-                    anchors.rightMargin: 10
-                    y: root.titleH + root.headGap
-                    height: root.fieldH
-                    placeholder: root.filter === "read" ? (LanguageAudioState.isJapanese ? "Filter books · Enter: ISBN / Aozora" : "Filter books") : root.filter === "stats" ? "Search files · Enter: YouTube" : "Search · Enter: YouTube · paste link"
-                    placeholderElide: true
-                    focusOnStart: false
-                    text: root.searchQuery
-                    onTextChanged: {
-                        root.searchQuery = text;
-                        // Typing changes the list -> reset the keyboard selection
-                        root.kbIndex = -1;
-                        // Keep typing after a YouTube search -> back to the file search
-                        if (LanguageAudioState.lastQuery !== "" && text !== LanguageAudioState.lastQuery)
-                            LanguageAudioState.clearSearch();
-
-                        if (text !== "" && root.filter !== "read")
-                            root.filter = "library";
-
-                        if (text === "" && root.filter === "read")
-                            LanguageReadingState.clearResults();
-
-                    }
-                    onAccepted: {
-                        if (text === "")
-                            return ;
-
-                        if (root.filter === "read")
-                            LanguageReadingState.search(text);
-                        else
-                            LanguageAudioState.downloadFromInput(text);
-                    }
-                    onKeyPressed: (event) => {
-                        // Ctrl+J/K = arrow down/up, the same in all pickers (PickerManager.navKey)
-                        const key = PickerManager.navKey(event);
-                        // Tab / Shift+Tab switch the tabs list/Read/stats (like a click at the top right)
-                        if (key === Qt.Key_Tab || key === Qt.Key_Backtab) {
-                            const tabs = root.tabKeys;
-                            const dir = (key === Qt.Key_Backtab || (event.modifiers & Qt.ShiftModifier)) ? -1 : 1;
-                            root.filter = tabs[(tabs.indexOf(root.filter) + dir + tabs.length) % tabs.length];
-                            event.accepted = true;
-                            return ;
-                        }
-                        // Read tab: Ctrl+H/L = left/right (shelf: selection, reader: chapter). Only here and
-                        // not in navKey, because Ctrl+H/L may be taken in other pickers. Unlike the
-                        // arrows they move no text cursor -> allowed even without a selection / with search text
-                        if (root.filter === "read" && (event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_H || event.key === Qt.Key_L)) {
-                            const dir = event.key === Qt.Key_L ? 1 : -1;
-                            if (LanguageReadingState.view === "reader")
-                                LanguageReadingState.step(dir);
-                            else if (root.kbList === "shelf")
-                                root.kbMove(dir);
-                            event.accepted = true;
-                            return ;
-                        }
-                        // Reading: arrow keys change the chapter (while nothing is typed)
-                        if (root.filter === "read" && text === "" && LanguageReadingState.view === "reader" && (key === Qt.Key_Left || key === Qt.Key_Right)) {
-                            LanguageReadingState.step(key === Qt.Key_Right ? 1 : -1);
-                            event.accepted = true;
-                            return ;
-                        }
-                        // Keyboard selection in the visible list (audio, YouTube, shelf, Aozora)
-                        if (root.kbList !== "") {
-                            const grid = root.kbList === "shelf";
-                            if (key === Qt.Key_Down || key === Qt.Key_Up) {
-                                const direction = key === Qt.Key_Down ? 1 : -1;
-                                root.kbMove(root.kbList === "audio" ? libraryList.verticalStep(root.kbIndex, direction) : direction * (grid ? readView.bookGrid.columns : 1));
-                                event.accepted = true;
-                                return ;
-                            }
-                            // Left/right only on the shelf and only with a selection, otherwise they move the text cursor
-                            if ((grid || root.kbList === "audio") && root.kbIndex >= 0 && (key === Qt.Key_Left || key === Qt.Key_Right)) {
-                                root.kbMove(key === Qt.Key_Right ? 1 : -1);
-                                event.accepted = true;
-                                return ;
-                            }
-                            // Enter with a selection runs it, without a selection Enter searches as before (onAccepted)
-                            if ((key === Qt.Key_Return || key === Qt.Key_Enter) && root.kbIndex >= 0 && root.kbActivate()) {
-                                event.accepted = true;
-                                return ;
-                            }
-                        }
-                        // Escape while reading: first the search results, then back to the shelf, then close
-                        if (key === Qt.Key_Escape && root.filter === "read" && text === "") {
-                            if (readView.pickedWord !== null || readView.pickedSentence !== null)
-                                readView.closePick();
-                            else if (LanguageReadingState.results !== null || LanguageReadingState.searching)
-                                LanguageReadingState.clearResults();
-                            else if (LanguageReadingState.view === "reader")
-                                LanguageReadingState.closeBook();
-                            else
-                                root.backToChooser();
-                            event.accepted = true;
-                            return ;
-                        }
-                        if (key === Qt.Key_Escape) {
-                            if (text !== "") {
-                                text = "";
-                                LanguageAudioState.clearSearch();
-                            } else {
-                                root.backToChooser();
-                            }
-                            event.accepted = true;
-                        }
-                    }
-                }
-
-                PillSegmented {
-                    id: segmented
-
-                    anchors.right: parent.right
-                    y: root.titleH + root.headGap
-                    height: root.fieldH
-                    segW: 76
-                    current: root.filter
-                    options: root.tabKeys.map((k) => {
-                        return {
-                            "label": k === "library" ? "Listen" : k === "read" ? "Read" : "Stats",
-                            "key": k
-                        };
-                    })
-                    onPicked: (key) => {
-                        root.filter = key;
-                    }
-                }
-
+                picker: root
             }
 
             // ═══════════ Download card ═══════════
@@ -1140,22 +783,6 @@ Item {
     Behavior on panelTop {
         Smooth {
             duration: root.switching ? 460 : 420
-        }
-
-    }
-
-    Behavior on displayProgress {
-        NumberAnimation {
-            duration: 600
-            easing.type: Easing.OutCubic
-        }
-
-    }
-
-    Behavior on shownMinutes {
-        NumberAnimation {
-            duration: 600
-            easing.type: Easing.OutCubic
         }
 
     }
