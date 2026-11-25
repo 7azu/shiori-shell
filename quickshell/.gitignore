@@ -1,0 +1,5 @@
+# Machine-specific: Quickshell replaces the file with a link into its runtime data (qmlls)
+.qmlls.ini
+# Python bytecode, created on every machine itself
+__pycache__/
+*.pyc

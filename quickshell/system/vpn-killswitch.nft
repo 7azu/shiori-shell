@@ -1,0 +1,29 @@
+#!/usr/sbin/nft -f
+# Killswitch: outgoing traffic only through the Proton WireGuard interface.
+# Interface name = NetworkManager connection name (proton-nl, proton-li ...) -> "proton*"
+# Without an active VPN: no internet (only WireGuard handshake, DHCP, LAN).
+
+table inet killswitch
+delete table inet killswitch
+
+table inet killswitch {
+    chain output {
+        type filter hook output priority 0; policy drop;
+
+        oif "lo" accept
+
+        # Everything through the tunnel is allowed
+        oifname "proton*" accept
+
+        # WireGuard handshake/tunnel packets to the Proton server (adjust the port if needed)
+        udp dport 51820 accept
+
+        # DHCP + IPv6 neighbor discovery, otherwise the local network breaks
+        udp sport 68 udp dport 67 accept
+        udp sport 546 udp dport 547 accept
+        icmpv6 type { nd-router-solicit, nd-neighbor-solicit, nd-neighbor-advert } accept
+
+        # Local network (printer, NAS ...). Delete this line for a stricter mode.
+        ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } accept
+    }
+}

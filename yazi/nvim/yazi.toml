@@ -1,0 +1,26 @@
+# Yazi profile for yazi.nvim (YAZI_CONFIG_HOME, see ~/.config/nvim/lua/shiori/plugins/yazi.lua).
+# The same as ~/.config/yazi/yazi.toml, only without image previews: kitty images do not work in nvim's
+# terminal, and yazi would fall back to ueberzugpp (separate windows, misplaced).
+# Images show their info here instead (format, resolution).
+
+[mgr]
+show_hidden = true
+
+[opener]
+edit = [
+    { run = 'nvim %s', block = true, desc = "nvim", for = "unix" },
+]
+
+[plugin]
+# As in ../yazi.toml nothing goes into the cache, so no unencrypted previews from a vault end up on the disk.
+# Videos, PDFs and fonts would need a cache image first: they show their info too.
+prepend_previewers = [
+    { mime = "image/*", run = "file" },
+    { mime = "video/*", run = "file" },
+    { mime = "application/pdf", run = "file" },
+    { mime = "font/*", run = "file" },
+    { mime = "application/ms-opentype", run = "file" },
+]
+prepend_preloaders = [
+    { url = "*", run = "noop" },
+]

@@ -1,0 +1,6 @@
+LockSurface 1.0 LockSurface.qml
+LockAuth 1.0 LockAuth.qml
+LockMedia 1.0 LockMedia.qml
+LockPower 1.0 LockPower.qml
+LockForeground 1.0 LockForeground.qml
+LockBackdrop 1.0 LockBackdrop.qml

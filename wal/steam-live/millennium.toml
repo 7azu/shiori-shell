@@ -1,0 +1,24 @@
+# Live colors for Steam: wal writes directly into Millennium's Quick CSS via the symlink
+# ~/.cache/wal/steam-colors.css. This plugin checks the file every second and writes changes
+# right away into all Steam windows, behind the theme files (details: frontend/index.tsx).
+# Log: ~/.cache/pywal-live.log
+# Build + install: cd ~/.config/wal/steam-live && npm install && npm run build
+# Then activate "pywal live" once in Steam under Millennium -> Plugins.
+
+[plugin]
+id = "pywal-live"
+name = "pywal live"
+version = "1.0.0"
+author = "shiori-shell"
+description = "Reloads Quick CSS (pywal colors) live on every change."
+
+[backend]
+entry = "backend/main.lua"
+sources = ["backend/**/*.lua"]
+
+[frontend]
+entry = "frontend/index.tsx"
+
+[compiler]
+# auto = find the Millennium installation and install the plugin there
+output_path = "auto"

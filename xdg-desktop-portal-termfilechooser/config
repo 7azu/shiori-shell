@@ -1,0 +1,8 @@
+; Yazi (in kitty) as the file picker for all programs that use the portal (browsers, Discord …)
+; The kitty window floats by a Hyprland rule (class "termfilechooser", modules/windows.lua)
+[filechooser]
+cmd=/usr/share/xdg-desktop-portal-termfilechooser/yazi-wrapper.sh
+default_dir=$HOME/Downloads
+env=TERMCMD=kitty --class termfilechooser
+open_mode=suggested
+save_mode=last

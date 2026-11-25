@@ -1,0 +1,13 @@
+[Unit]
+Description=VPN Killswitch (nftables)
+Before=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/nft -f /etc/vpn-killswitch.nft
+ExecStop=/usr/bin/nft delete table inet killswitch
+
+[Install]
+WantedBy=multi-user.target

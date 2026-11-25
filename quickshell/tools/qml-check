@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""Check QML files with qmlls (instead of qmllint).
+
+  tools/qml-check [--all] <file.qml>...
+
+Why not qmllint: as soon as a file imports a folder (import "../services", "../common" ...),
+qmllint no longer reports unknown names at all (it cannot rule out that they come from there) -
+that affects practically every file of this shell. Through .qmlls.ini (created by Quickshell)
+qmlls knows all modules and reports unknown names, wrong properties on singletons etc.
+
+Output: the diagnostics per file (errors and warnings; with --all also hints). Known noise of this
+shell is hidden (PanelWindow "not creatable", Appearance "durations", ComponentBehavior hints).
+Exit 1 if there were errors or warnings. Big files take a few seconds.
+"""
+import json
+import os
+import select
+import subprocess
+import sys
+import time
+
+NOISE = ("is not creatable", 'Member "durations" not found', 'Member "curves" not found', "pragma ComponentBehavior",
+         # Parts of a module access the core through their picker property (e.g. pickers/language/*)
+         "picker is a member of a parent element")
+SEVERITY = {1: "ERROR", 2: "WARN", 3: "INFO", 4: "HINT"}
+
+
+def send(proc, obj):
+    body = json.dumps(obj).encode()
+    proc.stdin.write(b"Content-Length: %d\r\n\r\n" % len(body) + body)
+    proc.stdin.flush()
+
+
+def messages(proc, timeout, quiet_after):
+    """Read messages until timeout, or until quiet_after seconds of quiet after the first diagnostic."""
+    buf, end, last_diag = b"", time.time() + timeout, None
+    fd = proc.stdout.fileno()
+    while time.time() < end:
+        if last_diag and time.time() - last_diag > quiet_after:
+            return
+        ready, _, _ = select.select([fd], [], [], 0.2)
+        if not ready:
+            continue
+        chunk = os.read(fd, 1 << 16)
+        if not chunk:
+            return
+        buf += chunk
+        while b"\r\n\r\n" in buf:
+            head, rest = buf.split(b"\r\n\r\n", 1)
+            size = next(int(l.split(b":")[1]) for l in head.split(b"\r\n") if l.lower().startswith(b"content-length"))
+            if len(rest) < size:
+                break
+            msg = json.loads(rest[:size])
+            buf = rest[size:]
+            if msg.get("method") == "textDocument/publishDiagnostics":
+                last_diag = time.time()
+            yield msg
+
+
+def check(path, show_all):
+    path = os.path.abspath(path)
+    uri = "file://" + path
+    proc = subprocess.Popen(["qmlls"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    try:
+        send(proc, {"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                    "params": {"processId": os.getpid(), "rootUri": "file://" + os.path.dirname(path), "capabilities": {}}})
+        for msg in messages(proc, 10, 0):
+            if msg.get("id") == 1:
+                break
+        send(proc, {"jsonrpc": "2.0", "method": "initialized", "params": {}})
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+        send(proc, {"jsonrpc": "2.0", "method": "textDocument/didOpen",
+                    "params": {"textDocument": {"uri": uri, "languageId": "qml", "version": 1, "text": text}}})
+        diags = []
+        # Big files: qmlls only sends after the analysis; then 2 s of quiet = done
+        for msg in messages(proc, 120, 2.0):
+            if msg.get("method") == "textDocument/publishDiagnostics" and msg["params"]["uri"] == uri:
+                diags = msg["params"]["diagnostics"]
+    finally:
+        proc.kill()
+    shown = [d for d in diags if not any(n in d.get("message", "") for n in NOISE)
+             and (show_all or d.get("severity", 2) <= 2)]
+    shown.sort(key=lambda d: d["range"]["start"]["line"])
+    rel = os.path.relpath(path)
+    print(f"{rel}: {len(shown)} problem(s)")
+    for d in shown:
+        line = d["range"]["start"]["line"] + 1
+        print(f"  {SEVERITY.get(d.get('severity'), '?'):5} {rel}:{line}: {d.get('message', '')}")
+    return sum(1 for d in shown if d.get("severity", 2) <= 2)
+
+
+def main():
+    args = sys.argv[1:]
+    show_all = "--all" in args
+    files = [a for a in args if a != "--all"]
+    if not files:
+        print(__doc__)
+        return 2
+    problems = sum(check(f, show_all) for f in files)
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

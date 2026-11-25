@@ -1,0 +1,54 @@
+/**
+ * @name Pywal system24 Override
+ * @description Colors system24 with the current pywal colors (regenerated on every `wal` run)
+ * @author shiori-shell
+ * @version 2.0.0
+ */
+
+/* Template for pywal: double curly braces become real CSS braces,
+   single ones with color names are replaced by the color.
+   It is used live by ~/.config/quickshell/scripts/vesktop_colors.py: that puts in an animated variable
+   for every placeholder and writes the result into Vencord's QuickCSS (fade).
+   wal's output ~/.cache/wal/colors-discord.css is deliberately NO longer a link in Vesktop's
+   themes folder: every change there reloads all themes -> Discord flashes unthemed briefly.
+   Gradations are mixed from background/foreground with color-mix, so contrast and
+   readability fit every wallpaper. Red/green/yellow (status, mute, errors) stay
+   the system24 default colors, because pywal colors have no fixed meaning. */
+
+:root {{
+    /* Backgrounds: bg-4 darkest, bg-1 lightest */
+    --bg-4: {background};
+    --bg-3: color-mix(in oklch, {background}, {foreground} 4%);
+    --bg-2: color-mix(in oklch, {background}, {foreground} 8%);
+    --bg-1: color-mix(in oklch, {background}, {foreground} 12%);
+
+    /* Text: text-1 lightest, text-5 dimmed (timestamps, muted channels) */
+    --text-0: {background};
+    --text-1: {foreground};
+    --text-2: color-mix(in oklch, {foreground} 92%, {background});
+    --text-3: color-mix(in oklch, {foreground} 82%, {background});
+    --text-4: {color8};
+    --text-5: color-mix(in oklch, {color8} 55%, {background});
+
+    /* Hover/selection: foreground slightly translucent */
+    --hover: color-mix(in oklch, {foreground} 7%, transparent);
+    --active: color-mix(in oklch, {foreground} 13%, transparent);
+    --active-2: color-mix(in oklch, {foreground} 19%, transparent);
+
+    /* Accent = color5 (like the active window border in Hyprland), light -> dark */
+    --purple-1: color-mix(in oklch, {color5}, white 18%);
+    --purple-2: {color5};
+    --purple-3: color-mix(in oklch, {color5}, black 10%);
+    --purple-4: color-mix(in oklch, {color5}, black 20%);
+    --purple-5: color-mix(in oklch, {color5}, black 30%);
+
+    /* Second color = color4 (e.g. links in quotes, Spotify bar) */
+    --blue-1: color-mix(in oklch, {color4}, white 18%);
+    --blue-2: {color4};
+    --blue-3: color-mix(in oklch, {color4}, black 10%);
+    --blue-4: color-mix(in oklch, {color4}, black 20%);
+    --blue-5: color-mix(in oklch, {color4}, black 30%);
+
+    --streaming: {color5};
+    --button-border: color-mix(in oklch, {foreground} 10%, transparent);
+}}

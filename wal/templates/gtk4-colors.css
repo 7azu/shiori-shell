@@ -1,0 +1,62 @@
+/* GTK4/libadwaita colors for the theme "Wal" (pywal template -> ~/.cache/wal/gtk4-colors.css).
+   The same mapping as gtk3-colors.css, only as CSS variables (libadwaita >= 1.8).
+   Double curly braces: pywal replaces {{colorN}} placeholders with Python format. */
+
+:root {{
+  --accent-bg-color: {color4};
+  --accent-fg-color: {background};
+  --accent-color: mix({color4}, {foreground}, 0.25);
+
+  --destructive-bg-color: #e08c8c;
+  --destructive-fg-color: {background};
+  --destructive-color: #e08c8c;
+  --success-bg-color: #8fd18f;
+  --success-fg-color: {background};
+  --success-color: #8fd18f;
+  --warning-bg-color: #e5c07b;
+  --warning-fg-color: {background};
+  --warning-color: #e5c07b;
+  --error-bg-color: #e08c8c;
+  --error-fg-color: {background};
+  --error-color: #e08c8c;
+
+  --window-bg-color: {background};
+  --window-fg-color: {foreground};
+  --view-bg-color: shade({background}, 0.85);
+  --view-fg-color: {foreground};
+
+  --headerbar-bg-color: mix({background}, {foreground}, 0.05);
+  --headerbar-fg-color: {foreground};
+  --headerbar-border-color: alpha({foreground}, 0.1);
+  --headerbar-backdrop-color: {background};
+  --headerbar-shade-color: alpha(black, 0.36);
+  --headerbar-darker-shade-color: alpha(black, 0.9);
+
+  --sidebar-bg-color: mix({background}, {foreground}, 0.03);
+  --sidebar-fg-color: {foreground};
+  --sidebar-backdrop-color: {background};
+  --sidebar-border-color: alpha({foreground}, 0.07);
+  --sidebar-shade-color: alpha(black, 0.36);
+  --secondary-sidebar-bg-color: mix({background}, {foreground}, 0.02);
+  --secondary-sidebar-fg-color: {foreground};
+  --secondary-sidebar-backdrop-color: {background};
+  --secondary-sidebar-border-color: alpha({foreground}, 0.07);
+  --secondary-sidebar-shade-color: alpha(black, 0.36);
+
+  --card-bg-color: alpha({foreground}, 0.05);
+  --card-fg-color: {foreground};
+  --card-shade-color: alpha(black, 0.36);
+
+  --dialog-bg-color: mix({background}, {foreground}, 0.06);
+  --dialog-fg-color: {foreground};
+  --popover-bg-color: mix({background}, {foreground}, 0.07);
+  --popover-fg-color: {foreground};
+  --popover-shade-color: alpha(black, 0.25);
+  --thumbnail-bg-color: mix({background}, {foreground}, 0.08);
+  --thumbnail-fg-color: {foreground};
+  --overview-bg-color: shade({background}, 0.9);
+  --overview-fg-color: {foreground};
+
+  --shade-color: alpha(black, 0.36);
+  --scrollbar-outline-color: alpha(black, 0.5);
+}}

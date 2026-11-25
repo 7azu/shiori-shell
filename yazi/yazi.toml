@@ -1,0 +1,43 @@
+[mgr]
+show_hidden = false
+
+[plugin]
+# Store nothing in the cache: preloaders write to /tmp/yazi-<uid>, so all off. That way no unencrypted
+# previews of files in a vault (plugins/vault.yazi) end up on the disk, wherever the vault is.
+# Normal images (jpg/png/gif/webp...) are then shown by the image previewer directly from the original file.
+# Previews that necessarily first create a cache image are off (videos, PDF, fonts, SVG, HEIC/AVIF/JXL).
+prepend_previewers = [
+    { mime = "video/*", run = "noop" },
+    { mime = "application/pdf", run = "noop" },
+    { mime = "font/*", run = "noop" },
+    { mime = "application/ms-opentype", run = "noop" },
+    { mime = "image/svg+xml", run = "noop" },
+    { mime = "image/heic", run = "noop" },
+    { mime = "image/heif", run = "noop" },
+    { mime = "image/avif", run = "noop" },
+    { mime = "image/jxl", run = "noop" },
+]
+prepend_preloaders = [
+    { url = "*", run = "noop" },
+]
+
+[opener]
+# Enter on text files: nvim in the same window; after :q you are back in yazi in the same folder.
+# %s = selected file(s), since yazi 25 instead of "$@"
+edit = [
+    { run = 'nvim %s', block = true, desc = "nvim", for = "unix" },
+]
+# Enter on images: the shell's editor (also browses through the folder). The viewer stays selectable with "O".
+image-editor = [
+    { run = '"$HOME/.config/quickshell/scripts/open_image.sh" %s', orphan = true, desc = "Image editor", for = "unix" },
+]
+# Enter on videos: the shell's video editor. mpv stays selectable with "O".
+video-editor = [
+    { run = '"$HOME/.config/quickshell/scripts/open_video.sh" %s', orphan = true, desc = "Video editor", for = "unix" },
+]
+
+[open]
+prepend_rules = [
+    { mime = "image/*", use = ["image-editor", "open", "reveal"] },
+    { mime = "video/*", use = ["video-editor", "open", "reveal"] },
+]

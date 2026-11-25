@@ -1,0 +1,24 @@
+#!/usr/bin/env zsh
+# animefetch-art – turns an image into braille art for fastfetch (~/.config/fastfetch/logo.txt)
+# Usage: animefetch-art IMAGE [WIDTH] [--no-invert]
+#   WIDTH       characters wide (default 40, height automatic)
+#   --no-invert for line art on a white background (lines glow instead of areas)
+
+logo=~/.config/fastfetch/logo.txt
+img=$1 width=${2:-40}
+[[ -f $img ]] || { print -u2 "Usage: animefetch-art IMAGE [WIDTH] [--no-invert]"; exit 1; }
+[[ $2 == --no-invert ]] && width=40
+
+inv=(--invert)
+[[ " $* " == *" --no-invert "* ]] && inv=()
+
+art=$(chafa -f symbols --symbols braille -c none --dither none --preprocess on \
+      $inv --size ${width}x "$img") || exit 1
+
+# Back up the old art, then write the new one ($1 = logo color from config.jsonc)
+[[ -f $logo ]] && cp $logo $logo.bak
+print -r -- "$art" | sed 's/^/$1/' > $logo
+
+print "Done ($(print -r -- "$art" | wc -l) lines). Preview:"
+print -r -- "$art"
+print "Old art backed up as $logo.bak"

@@ -1,0 +1,37 @@
+# starship prompt (https://starship.rs): user name, folder, git branch and changes, arrow.
+# install.sh links this to ~/.config/starship.toml and adds the init line to ~/.bashrc / ~/.zshrc.
+# Needs a Nerd Font (the icons).
+format = """
+$username\
+$directory\
+$git_branch\
+$git_status\
+$character\
+"""
+
+# Your user name with the Arch logo, always (by default starship shows it only over SSH)
+[username]
+show_always = true
+style_user = "bold blue"
+style_root = "bold red"
+format = "[$user 󰣇 ]($style)"
+
+# Change the appearance of the directory
+[directory]
+style = "bold cyan"
+truncation_length = 3
+truncation_symbol = "…/"
+
+# Show the current Git branch
+[git_branch]
+symbol = " "
+style = "bold magenta"
+
+# Show if there are pending changes in Git
+[git_status]
+style = "bold red"
+
+# The "Arrow" part (The character)
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"

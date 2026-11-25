@@ -1,0 +1,12 @@
+#!/bin/bash
+# vpn-killswitch on|off|status
+RULES="${VPN_KILLSWITCH_RULES:-/etc/vpn-killswitch.nft}"
+
+if [ "$EUID" -ne 0 ]; then exec sudo "$0" "$@"; fi
+
+case "$1" in
+  on)     nft -f "$RULES" && echo "Killswitch ON" ;;
+  off)    nft delete table inet killswitch 2>/dev/null; echo "Killswitch OFF" ;;
+  status) nft list table inet killswitch >/dev/null 2>&1 && echo "ON" || echo "OFF" ;;
+  *)      echo "Usage: vpn-killswitch on|off|status"; exit 1 ;;
+esac

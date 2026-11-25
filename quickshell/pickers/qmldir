@@ -1,0 +1,15 @@
+AppLauncher 1.0 AppLauncher.qml
+AppPicker 1.0 AppPicker.qml
+BluetoothPicker 1.0 BluetoothPicker.qml
+WifiPicker 1.0 WifiPicker.qml
+ClipboardPicker 1.0 ClipboardPicker.qml
+LanguagePicker 1.0 language/LanguagePicker.qml
+MusicPicker 1.0 MusicPicker.qml
+PickerSwitcher 1.0 PickerSwitcher.qml
+PickerAddButton 1.0 PickerAddButton.qml
+PickerWindow 1.0 PickerWindow.qml
+TrashPicker 1.0 TrashPicker.qml
+VpnGlobe 1.0 VpnGlobe.qml
+VpnPicker 1.0 VpnPicker.qml
+WallpaperPicker 1.0 WallpaperPicker.qml
+ShortcutPicker 1.0 ShortcutPicker.qml

@@ -1,0 +1,65 @@
+/* pywal colors for the Steam theme "Minimal Dark" (Millennium).
+   The output ~/.cache/wal/steam-colors.css is a symlink to ~/.config/millennium/quick.css:
+   Millennium loads Quick CSS after the theme, so the values here override its colors.
+   Double curly braces = real CSS braces, single ones with color names = pywal color.
+   Gradations are mixed from background/foreground, so the contrast fits every wallpaper.
+   Red/green for status (online, errors, settings) deliberately stay fixed colors. */
+
+:root {{
+    /* Base colors for the fixed colors in the theme: ~/.config/wal/steam/patch-theme.py replaces them
+       with mixes of these (store: template steam-webkit.css) */
+    --wal_bg: {background};
+    --wal_fg: {foreground};
+    --wal_accent: {color4};
+
+    /* Accent (the theme uses both names) = color4, as in Quickshell */
+    --minimal_dark_color: {color4} !important;
+    --minimal_dark_color1: {color4} !important;
+    --minimal_dark_color_rgb: {color4.rgb} !important;
+    --minimal_dark_color_rgb1: {color4.rgb} !important;
+
+    /* Surfaces: from light (be_grey) to fully dark (blacker_alt2) */
+    --minimal_dark_be_grey: color-mix(in oklch, {background}, {foreground} 10%) !important;
+    --minimal_dark_greyblack: color-mix(in oklch, {background}, {foreground} 13%) !important;
+    --minimal_dark_black: color-mix(in oklch, {background}, {foreground} 6%) !important;
+    --minimal_dark_blacker: color-mix(in oklch, {background}, {foreground} 3%) !important;
+    --minimal_dark_blacker_alt: {background} !important;
+    --minimal_dark_blacker_alt1: color-mix(in oklch, {background}, black 15%) !important;
+    --minimal_dark_blacker_alt2: color-mix(in oklch, {background}, black 30%) !important;
+    --minimal_dark_invisiblegrey: color-mix(in oklch, {foreground} 8%, transparent) !important;
+
+    /* Text */
+    --minimal_dark_topgrey: {color8} !important;
+    --minimal_dark_topgrey1: color-mix(in oklch, {foreground} 80%, {background}) !important;
+    --minimal_dark_less_white: {foreground} !important;
+    --minimal_dark_currency: {foreground} !important;
+    --minimal_dark_installed_games: {color7} !important;
+    /* used by the theme, but set nowhere (friends list: last played) */
+    --minimal_dark_light_blue: color-mix(in oklch, {color4}, {foreground} 40%) !important;
+
+    /* Progress + gradients (download bar, buttons) in the accent */
+    --minimal_dark_progress_bar: {color4} !important;
+    --minimal_dark_bgb: radial-gradient(circle, {color4} 0%, color-mix(in oklch, {color4}, black 20%) 100%) !important;
+    --minimal_dark_bgg: radial-gradient(circle, {color2} 0%, color-mix(in oklch, {color2}, black 20%) 80%) !important;
+
+    /* Status stays fixed (muted, as in Quickshell) */
+    --minimal_dark_red2: #e08c8c !important;
+    --minimal_dark_red2_rgba: 224,140,140,1 !important;
+    --minimal_dark_redsettings: #e08c8c !important;
+    --minimal_dark_greensettings: #8fd18f !important;
+    --minimal_dark_status_green: #8fd18f !important;
+    --minimal_dark_browser_overlay_close: #8fd18f !important;
+}}
+
+/* Font as in Quickshell and the Obsidian interface (installed locally, nothing from the network).
+   "*" as in the theme's own font options; kana/kanji fall back to Noto CJK. */
+* {{
+    font-family: "JetBrainsMono Nerd Font", "Noto Sans CJK JP", sans-serif !important;
+}}
+
+/* Hide the notice "Some detailed information ... non-Steam game" on the pages of non-Steam games.
+   The class is a hash from Steam and may change with a client update,
+   then the notice simply appears again. Innermost region, so not the whole column disappears. */
+[role="region"]:has(._1TGl52GwsFQg3CXUYvThP-):not(:has([role="region"] ._1TGl52GwsFQg3CXUYvThP-)) {{
+    display: none !important;
+}}

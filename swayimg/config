@@ -1,0 +1,10 @@
+# ~/.config/swayimg/config
+[list]
+all = yes
+order = alpha
+window = 00000000
+
+[keys.viewer]
+h = prev_file
+l = next_file
+q = exit

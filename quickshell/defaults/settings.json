@@ -1,0 +1,17 @@
+{
+  "folders": {
+    "wallpapers": "$PICTURES/Wallpaper",
+    "screenshots": "$PICTURES/Screenshots",
+    "music": "$MUSIC",
+    "languages": "$DOCUMENTS/Languages",
+    "books": "$DOCUMENTS/JapaneseBooks",
+    "notes": "",
+    "projects": ""
+  },
+  "languageFolders": {},
+  "translation": {
+    "provider": "auto",
+    "ollamaModel": "qwen2.5:7b",
+    "ollamaUrl": "http://localhost:11434"
+  }
+}

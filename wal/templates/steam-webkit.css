@@ -1,0 +1,37 @@
+/* pywal colors for the store/community pages in the Steam theme "Minimal Dark" (webkit.css).
+   Output ~/.cache/wal/steam-webkit.css; the theme includes it via the symlink
+   elements/wal-webkit.css, which ~/.config/wal/steam/patch-theme.py creates (with the @import).
+   Deliberately without the rest of steam-colors.css (fonts etc.): the pages belong to Valve.
+   New colors apply from the next page load. */
+
+:root {{
+    --wal_bg: {background};
+    --wal_fg: {foreground};
+    --wal_accent: {color4};
+
+    /* used by the theme, but set nowhere */
+    --minimal_dark_be_blacker: color-mix(in oklch, {background}, {foreground} 3%);
+    --minimal_dark_black_alt: color-mix(in oklch, {background}, {foreground} 6%);
+    --minimal_dark_white: {foreground};
+    --minimal_dark_light_blue: color-mix(in oklch, {color4}, {foreground} 40%);
+}}
+
+/* Steam Store navigation and search */
+.XLbP8xOkCYw- {{
+    background: color-mix(in oklch, var(--wal_bg), var(--wal_fg) 4%) !important;
+    color: var(--wal_fg) !important;
+}}
+[role="navigation"] form:has(input[name="term"][role="combobox"]) {{
+    background: color-mix(in oklch, var(--wal_bg), var(--wal_fg) 12%) !important;
+}}
+[role="navigation"] input[name="term"][role="combobox"]:is(:hover, :focus-visible) {{
+    border-color: var(--wal_accent) !important;
+    background: var(--wal_bg) !important;
+}}
+[role="navigation"] form:has(input[name="term"][role="combobox"]) button[type="submit"] {{
+    background: var(--wal_accent) !important;
+    color: var(--wal_bg) !important;
+}}
+[role="navigation"] form:has(input[name="term"][role="combobox"]) button[type="submit"]:hover {{
+    background: color-mix(in oklch, var(--wal_accent), var(--wal_fg) 20%) !important;
+}}

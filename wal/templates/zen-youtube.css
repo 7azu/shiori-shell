@@ -1,0 +1,191 @@
+/* pywal colors for YouTube and YouTube Music in Zen - without an extension.
+   wal writes this to ~/.cache/wal/zen-youtube.css; zen-live (~/.config/wal/zen-live/zen-live.cfg)
+   loads the file as a user stylesheet and reloads it live on every change.
+   YouTube stores almost all colors in CSS variables; they are overridden here.
+   Read them again if YouTube renames them: ~/.config/wal/zen/youtube-tokens.py
+   Only the dark design ([dark]); the video player itself stays black. */
+
+@-moz-document domain("youtube.com") {{
+    /* The three base colors only here; everything else derives from them via var(). zen-live
+       registers them as <color> (author sheet, @property in the user sheet does not count reliably),
+       so a color change crossfades softly instead of jumping. Duration/curve as in Quickshell. */
+    html {{
+        --wal-bg: {background};
+        --wal-fg: {foreground};
+        --wal-accent: {color4};
+        transition: --wal-bg 900ms cubic-bezier(0.455, 0.03, 0.515, 0.955),
+                    --wal-fg 900ms cubic-bezier(0.455, 0.03, 0.515, 0.955),
+                    --wal-accent 900ms cubic-bezier(0.455, 0.03, 0.515, 0.955);
+    }}
+
+    html[dark], [dark] {{
+        /* The actual colors: YouTube variables with hash names, mapped by color value.
+           If YouTube changes the names (page black again): ~/.config/wal/zen/youtube-tokens.py */
+        /* >>> youtube-tokens.py (do not edit by hand) */
+        --t08a7c6c176cbc5c2: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 10%) !important; /* #282828 */
+        --t1405e70a39276293: var(--wal-fg) !important; /* #f1f1f1 */
+        --t1aab759cd9ddbe39: color-mix(in srgb, var(--wal-fg) 5%, transparent) !important; /* rgba(255,255,255,0.05) */
+        --t20480717de80f555: color-mix(in srgb, var(--wal-fg) 20%, transparent) !important; /* rgba(255,255,255,0.2) */
+        --t21af08fdbf6a1406: var(--wal-fg) !important; /* #fff */
+        --t25a42c37f53e50e0: color-mix(in srgb, var(--wal-bg) 75%, transparent) !important; /* rgba(15,15,15,0.75) */
+        --t296c7f81dd09a9c3: var(--wal-fg) !important; /* #fff */
+        --t2d807bb79e75606d: var(--wal-accent) !important; /* #3ea6ff */
+        --t3e41d7b17b187f69: var(--wal-bg) !important; /* #0f0f0f */
+        --t416e5931fc464589: color-mix(in srgb, var(--wal-fg) 20%, transparent) !important; /* rgba(255,255,255,0.2) */
+        --t45b2a38314924357: var(--wal-bg) !important; /* #0f0f0f */
+        --t4a6da19e16bf221a: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 35%) !important; /* #aaa */
+        --t4fb0f67b251e1a42: var(--wal-fg) !important; /* #fff */
+        --t518e925f61bdcb91: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 7%) !important; /* #212121 */
+        --t5355e7dcd3a33a2f: color-mix(in srgb, var(--wal-bg) 85%, transparent) !important; /* rgba(15,15,15,0.85) */
+        --t53dda9125e8d1324: color-mix(in srgb, var(--wal-fg) 15%, transparent) !important; /* rgba(255,255,255,0.15) */
+        --t544e31714f63d53c: color-mix(in srgb, var(--wal-fg) 30%, transparent) !important; /* rgba(255,255,255,0.3) */
+        --t5978da8d584b8fe9: color-mix(in srgb, var(--wal-bg) 70%, transparent) !important; /* rgba(15,15,15,0.7) */
+        --t617db776af0de196: color-mix(in oklch, var(--wal-accent), var(--wal-fg) 30%) !important; /* #65b8ff */
+        --t6216186c28b3834b: var(--wal-bg) !important; /* #0f0f0f */
+        --t6931aa1826b373b2: color-mix(in srgb, var(--wal-fg) 30%, transparent) !important; /* rgba(255,255,255,0.3) */
+        --t735e435a8b7ad67c: var(--wal-fg) !important; /* #fff */
+        --t7c4965c11f8537c0: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important; /* rgba(255,255,255,0.1) */
+        --t7e34d5baa4ea6277: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 60%) !important; /* #717171 */
+        --t7f4f2c6d54836ce0: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important; /* rgba(255,255,255,0.1) */
+        --t7f9b7e1603e20b94: var(--wal-fg) !important; /* #fff */
+        --t8cdc9846a76caf1f: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 15%) !important; /* #d9d9d9 */
+        --t93a9a9c8ff5bfbfc: var(--wal-fg) !important; /* #f1f1f1 */
+        --t9bc0b740242da017: color-mix(in oklch, var(--wal-bg), var(--wal-accent) 35%) !important; /* #515561 */
+        --t9d7bdcaefc975d44: color-mix(in srgb, var(--wal-fg) 20%, transparent) !important; /* rgba(255,255,255,0.2) */
+        --ta889dfda9605a358: color-mix(in srgb, var(--wal-bg) 80%, transparent) !important; /* rgba(15,15,15,0.8) */
+        --tad8443faed66c111: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 15%) !important; /* #d9d9d9 */
+        --taf1bdd961423c15f: color-mix(in srgb, var(--wal-fg) 5%, transparent) !important; /* rgba(255,255,255,0.05) */
+        --tbdeaf5bc17152abc: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 4%) !important; /* #181818 */
+        --tc4b26042d4cb141f: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 45%) !important; /* #909090 */
+        --tc54fd20dab7048eb: color-mix(in srgb, var(--wal-bg) 60%, transparent) !important; /* rgba(15,15,15,0.6) */
+        --tc87f6a7f05e65fc4: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important; /* rgba(255,255,255,0.1) */
+        --td8562cdc203bc683: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 18%) !important; /* #3f3f3f */
+        --tde41338fc2bd4ba5: var(--wal-fg) !important; /* #fff */
+        --te1b64e6971040396: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 12%) !important; /* #272727 */
+        --ted4236536899e4b3: color-mix(in srgb, var(--wal-fg) 15%, transparent) !important; /* rgba(255,255,255,0.15) */
+        --tf3fc855af2285f5f: color-mix(in srgb, var(--wal-fg) 20%, transparent) !important; /* rgba(255,255,255,0.2) */
+        --tf5f050c65aebead5: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important; /* rgba(255,255,255,0.1) */
+        --tf8fd38cbdab81862: color-mix(in srgb, var(--wal-bg) 30%, transparent) !important; /* rgba(15,15,15,0.3) */
+        --tfa3475c508f5dfef: color-mix(in oklch, var(--wal-bg), var(--wal-accent) 25%) !important; /* #263850 */
+        --tffc2fd3a644f6275: var(--wal-fg) !important; /* #f1f1f1 */
+        /* <<< youtube-tokens.py */
+
+
+        /* YouTube now names its colors --yt-sys-color-baseline--*; the old
+           --yt-spec-* further below stay for page parts that still use them. */
+        /* Surfaces */
+        --yt-sys-color-baseline--base-background: var(--wal-bg) !important;
+        --yt-sys-color-baseline--solid-background-inverse: var(--wal-bg) !important;
+        --yt-sys-color-baseline--scrim-background-gradient-5: var(--wal-bg) !important;
+        --yt-sys-color-baseline--surface-container: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 4%) !important;
+        --yt-sys-color-baseline--raised-background: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 7%) !important;
+        --yt-sys-color-baseline--menu-background: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 10%) !important;
+        --yt-sys-color-baseline--outline-opaque: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 18%) !important;
+        --yt-sys-color-baseline--mono-filled-hover-inverse: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 12%) !important;
+        --yt-sys-color-baseline--inverted-background: var(--wal-fg) !important;
+        --yt-sys-color-baseline--inverted-background-hover: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 15%) !important;
+        --yt-sys-color-baseline--mono-filled-hover: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 15%) !important;
+        --yt-sys-color-baseline--solid-background: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 10%) !important;
+        --yt-sys-color-baseline--frosted-glass-desktop: color-mix(in srgb, var(--wal-bg) 80%, transparent) !important;
+        --yt-sys-color-baseline--frosted-glass-mobile: color-mix(in srgb, var(--wal-bg) 70%, transparent) !important;
+        --yt-sys-color-baseline--frost-container-heavy: color-mix(in srgb, var(--wal-bg) 85%, transparent) !important;
+        --yt-sys-color-baseline--frost-container-semi-heavy: color-mix(in srgb, var(--wal-bg) 75%, transparent) !important;
+        --yt-sys-color-baseline--frost-container-medium: color-mix(in srgb, var(--wal-bg) 60%, transparent) !important;
+        --yt-sys-color-baseline--frost-container-light: color-mix(in srgb, var(--wal-bg) 30%, transparent) !important;
+        /* Semi-transparent layers (chips, buttons, hover) */
+        --yt-sys-color-baseline--additive-background: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important;
+        --yt-sys-color-baseline--tonal-background: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important;
+        --yt-sys-color-baseline--tonal-rim: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important;
+        --yt-sys-color-baseline--tonal-wash: color-mix(in srgb, var(--wal-fg) 5%, transparent) !important;
+        --yt-sys-color-baseline--state-mono-standard-hovered: color-mix(in srgb, var(--wal-fg) 5%, transparent) !important;
+        --yt-sys-color-baseline--state-mono-standard-pressed: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important;
+        --yt-sys-color-baseline--button-chip-background-hover: color-mix(in srgb, var(--wal-fg) 20%, transparent) !important;
+        --yt-sys-color-baseline--mono-tonal-hover: color-mix(in srgb, var(--wal-fg) 20%, transparent) !important;
+        --yt-sys-color-baseline--outline: color-mix(in srgb, var(--wal-fg) 20%, transparent) !important;
+        --yt-sys-color-baseline--outline-rim: color-mix(in srgb, var(--wal-fg) 15%, transparent) !important;
+        --yt-sys-color-baseline--solid-rim: color-mix(in srgb, var(--wal-fg) 20%, transparent) !important;
+        /* Text */
+        --yt-sys-color-baseline--text-primary: var(--wal-fg) !important;
+        --yt-sys-color-baseline--wordmark-text: var(--wal-fg) !important;
+        --yt-sys-color-baseline--touch-response: var(--wal-fg) !important;
+        --yt-sys-color-baseline--text-secondary: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 35%) !important;
+        --yt-sys-color-baseline--text-disabled: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 60%) !important;
+        --yt-sys-color-baseline--text-primary-inverse: var(--wal-bg) !important;
+        --yt-sys-color-baseline--text-secondary-inverse: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 40%) !important;
+        /* Accent (links, subscribe bell, progress, ...) */
+        --yt-sys-color-baseline--call-to-action: var(--wal-accent) !important;
+        --yt-sys-color-baseline--call-to-action-hover: color-mix(in oklch, var(--wal-accent), var(--wal-fg) 30%) !important;
+        --yt-sys-color-baseline--suggested-action: color-mix(in oklch, var(--wal-bg), var(--wal-accent) 25%) !important;
+        --yt-sys-color-baseline--suggested-action-hover: color-mix(in oklch, var(--wal-bg), var(--wal-accent) 35%) !important;
+        --ytd-searchbox-background: var(--wal-bg) !important;
+        --ytd-searchbox-text-color: var(--wal-fg) !important;
+        --ytd-searchbox-border-color: color-mix(in srgb, var(--wal-fg) 30%, transparent) !important;
+        --ytd-searchbox-legacy-button-color: color-mix(in srgb, var(--wal-fg) 8%, transparent) !important;
+        --ytd-searchbox-legacy-button-hover-color: color-mix(in srgb, var(--wal-fg) 12%, transparent) !important;
+        --ytd-searchbox-legacy-button-focus-color: color-mix(in srgb, var(--wal-fg) 12%, transparent) !important;
+        --ytd-searchbox-legacy-border-color: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 18%) !important;
+        --ytd-searchbox-legacy-button-border-color: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 18%) !important;
+        --ytd-searchbox-legacy-button-hover-border-color: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 18%) !important;
+
+        /* Alte Namen */
+        --yt-spec-base-background: var(--wal-bg) !important;
+        --yt-spec-general-background-a: var(--wal-bg) !important;
+        --yt-spec-general-background-b: var(--wal-bg) !important;
+        --yt-spec-general-background-c: var(--wal-bg) !important;
+        --yt-spec-brand-background-solid: var(--wal-bg) !important;
+        --yt-spec-brand-background-primary: color-mix(in srgb, var(--wal-bg) 80%, transparent) !important;
+        --yt-spec-brand-background-secondary: color-mix(in srgb, var(--wal-bg) 90%, transparent) !important;
+        --yt-spec-raised-background: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 6%) !important;
+        --yt-spec-menu-background: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 9%) !important;
+        --yt-spec-snackbar-background: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 9%) !important;
+        --yt-spec-inverted-background: var(--wal-fg) !important;
+
+        --yt-spec-additive-background: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important;
+        --yt-spec-10-percent-layer: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important;
+        --yt-spec-badge-chip-background: color-mix(in srgb, var(--wal-fg) 10%, transparent) !important;
+        --yt-spec-button-chip-background-hover: color-mix(in srgb, var(--wal-fg) 20%, transparent) !important;
+        --yt-spec-outline: color-mix(in srgb, var(--wal-fg) 20%, transparent) !important;
+        --yt-spec-touch-response: var(--wal-fg) !important;
+
+        --yt-spec-text-primary: var(--wal-fg) !important;
+        --yt-spec-text-primary-inverse: var(--wal-bg) !important;
+        --yt-spec-text-secondary: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 35%) !important;
+        --yt-spec-text-disabled: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 60%) !important;
+        --yt-spec-wordmark-text: var(--wal-fg) !important;
+        --yt-spec-icon-active-other: var(--wal-fg) !important;
+        --yt-spec-icon-inactive: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 35%) !important;
+        --yt-spec-icon-disabled: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 60%) !important;
+
+        --yt-spec-call-to-action: var(--wal-accent) !important;
+        --yt-spec-themed-blue: var(--wal-accent) !important;
+        --yt-spec-brand-link-text: var(--wal-accent) !important;
+        --yt-spec-suggested-action: color-mix(in srgb, var(--wal-accent) 15%, transparent) !important;
+    }}
+
+    /* YouTube sets the page background fixed (with !important) instead of via a variable */
+    html[dark] {{
+        background-color: var(--wal-bg) !important;
+    }}
+}}
+
+/* YouTube Music is always dark and uses its own variables or fixed surfaces; the
+   base colors (--wal-*) come from the block above (domain("youtube.com") applies here too). */
+@-moz-document domain("music.youtube.com") {{
+    html {{
+        --ytmusic-general-background-a: var(--wal-bg) !important;
+        --ytmusic-general-background-b: var(--wal-bg) !important;
+        --ytmusic-general-background-c: var(--wal-bg) !important;
+        --ytmusic-brand-background-solid: var(--wal-bg) !important;
+        --ytmusic-background: var(--wal-bg) !important;
+        --ytmusic-player-bar-background: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 6%) !important;
+        --ytmusic-text-primary: var(--wal-fg) !important;
+        --ytmusic-text-secondary: color-mix(in oklch, var(--wal-fg), var(--wal-bg) 35%) !important;
+        background: var(--wal-bg) !important;
+    }}
+    body, ytmusic-app, #layout, #guide-wrapper, ytmusic-nav-bar, #nav-bar-background {{
+        background: var(--wal-bg) !important;
+    }}
+    ytmusic-player-bar {{
+        background: color-mix(in oklch, var(--wal-bg), var(--wal-fg) 6%) !important;
+    }}
+}}

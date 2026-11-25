@@ -1,0 +1,20 @@
+NotificationToasts 1.0 NotificationToasts.qml
+PowerMenu 1.0 PowerMenu.qml
+VolumeOrb 1.0 VolumeOrb.qml
+VolumeSliderPopup 1.0 VolumeSliderPopup.qml
+WorkspaceOverview 1.0 WorkspaceOverview.qml
+ScreenshotEditor 1.0 ScreenshotEditor.qml
+VideoEditor 1.0 VideoEditor.qml
+AnimatedWallpaper 1.0 AnimatedWallpaper.qml
+InkBloom 1.0 InkBloom.qml
+AnimMoveFade 1.0 AnimMoveFade.qml
+LockTransition 1.0 LockTransition.qml
+LanguageSubtitles 1.0 LanguageSubtitles.qml
+LanguageVideoPlayer 1.0 LanguageVideoPlayer.qml
+MediaBrowser 1.0 MediaBrowser.qml
+
+CalculatorWindow 1.0 CalculatorWindow.qml
+DesktopVisualizer 1.0 DesktopVisualizer.qml
+DesktopVisualizerLook 1.0 DesktopVisualizerLook.qml
+AppColorFade 1.0 AppColorFade.qml
+EditorActionSlot 1.0 EditorActionSlot.qml

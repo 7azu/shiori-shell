@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Screenshots of the real image/video editor windows, without disturbing the running shell or the screen
+# (technique: see tools/ui-shot.qml). For UI work on windows/ScreenshotEditor.qml, VideoEditor.qml,
+# MediaBrowser.qml and the common/Ios* building blocks.
+#
+#   tools/ui-shot [options] <image-or-video>
+#     -o FILE       output PNG (default: $XDG_RUNTIME_DIR/ui-shot.png)
+#     --edit        editor expanded (otherwise the big view, as on normal opening)
+#     --browse      open the folder browser
+#     --frames N    image sequence: N images 70 ms apart from the action (check animations) -> FILE_fK.png
+#     --wait MS     wait time after opening (default 3000; videos need their first frame)
+#     --size WxH    size of the capture (default 2560x1440)
+#     --call O.F    after opening, call function F of the element with objectName O (mediaBrowser.openSort)
+#     --set N=V     set a property of the editor window (repeatable), e.g. --set compressOpen=true
+#     --raw         without a dark background (otherwise transparent -> put on #181a22, like a desktop)
+#
+# Examples:
+#   tools/ui-shot ~/Pictures/Wallpaper/Wallpaper1.png
+#   tools/ui-shot --edit --browse -o /tmp/b.png ~/Videos/clip.mp4
+#   tools/ui-shot --edit --browse --frames 8 ~/Videos/clip.mp4
+# Output: one line with the path per saved image. Exit 1 if nothing was saved.
+set -uo pipefail
+
+here=$(cd -- "$(dirname -- "$0")" && pwd)
+config=$(dirname -- "$here")
+out="${XDG_RUNTIME_DIR:-/tmp}/ui-shot.png"
+sets="" call="" edit=0 browse=0 frames=0 wait=3000 size=2560x1440 raw=0 file=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -o) out=$2; shift 2 ;;
+        --edit) edit=1; shift ;;
+        --browse) browse=1; shift ;;
+        --frames) frames=$2; shift 2 ;;
+        --wait) wait=$2; shift 2 ;;
+        --size) size=$2; shift 2 ;;
+        --call) call=$2; shift 2 ;;
+        --set) sets="${sets:+$sets;}$2"; shift 2 ;;
+        --raw) raw=1; shift ;;
+        -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+        *) file=$1; shift ;;
+    esac
+done
+[ -n "$file" ] && [ -f "$file" ] || { echo "ui-shot: file not found: $file" >&2; exit 2; }
+file=$(realpath -- "$file")
+out=$(realpath -m -- "$out")
+case "${file,,}" in
+    *.png|*.jpg|*.jpeg|*.webp|*.bmp|*.gif|*.tif|*.tiff) which=image ;;
+    *) which=video ;;
+esac
+
+# Own test instance: link the config's subfolders, own shell.qml, own state folder
+work=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/qs-ui-shot.XXXXXX")
+trap 'rm -rf -- "$work"' EXIT
+for d in "$config"/*/; do
+    name=$(basename -- "$d")
+    [ "$name" = tools ] || ln -s -- "$d" "$work/$name"
+done
+cp -- "$here/ui-shot.qml" "$work/shell.qml"
+
+rm -f -- "$out" "${out%.png}"_f*.png
+UI_WHICH=$which UI_FILE=$file UI_OUT=$out UI_WAIT=$wait UI_EDIT=$edit UI_BROWSE=$browse UI_FRAMES=$frames UI_SET=$sets UI_CALL=$call \
+UI_W=${size%x*} UI_H=${size#*x} XDG_STATE_HOME="$work/state" \
+    timeout $(( wait / 1000 + 30 )) qs -p "$work" 2>&1 | grep -E 'UI-SHOT|TypeError|ReferenceError' \
+    | grep -v ' saved true' | sed 's/.*qml\]*: //' >&2
+
+shots=()
+[ -f "$out" ] && shots+=("$out")
+for f in "${out%.png}"_f*.png; do [ -f "$f" ] && shots+=("$f"); done
+[ ${#shots[@]} -gt 0 ] || { echo "ui-shot: nothing saved" >&2; exit 1; }
+
+if [ "$raw" = 0 ]; then
+    python3 -I - "${shots[@]}" <<'EOF'
+import sys
+from PIL import Image
+for p in sys.argv[1:]:
+    im = Image.open(p).convert("RGBA")
+    bg = Image.new("RGBA", im.size, (24, 26, 34, 255))
+    bg.alpha_composite(im)
+    bg.convert("RGB").save(p)
+EOF
+fi
+printf '%s\n' "${shots[@]}"

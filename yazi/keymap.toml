@@ -1,0 +1,7 @@
+[mgr]
+prepend_keymap = [
+    # Encrypted folders (plugins/vault.yazi): without a vault both keys behave as usual
+    { on = "<C-l>", run = "plugin vault lock", desc = "Lock the vault" },
+    # Lock along when quitting inside a vault (see plugins/vault-quit.yazi)
+    { on = "q", run = ["plugin vault-quit", "quit"], desc = "Quit (locks an open vault)" },
+]

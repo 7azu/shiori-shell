@@ -1,0 +1,40 @@
+// fastfetch for the terminal on the home stage (and every new terminal outside tmux, see the README):
+// braille girl on the left, system info in three boxed sections on the right.
+// Colors are the terminal's ANSI colors, so they follow pywal: magenta = color5, yellow = color3.
+// Own picture: fastfetch/bin/animefetch-art IMAGE [WIDTH] writes a new logo.txt.
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "~/.config/fastfetch/logo.txt",
+    "color": { "1": "magenta" },
+    "padding": { "right": 3 }
+  },
+  "display": {
+    "separator": " ",
+    "color": { "keys": "yellow", "output": "default" },
+    "key": { "width": 14 }
+  },
+  "modules": [
+    // two empty lines: centers the 15 info lines next to the 19 lines of the picture
+    "break",
+    "break",
+    { "type": "custom", "format": "{#magenta}╭─ {#bold_magenta}system" },
+    { "type": "os", "key": "{#magenta}│ {#yellow}󰣇  {#90}os" },
+    { "type": "kernel", "key": "{#magenta}│ {#yellow}󰌽  {#90}kernel" },
+    { "type": "uptime", "key": "{#magenta}│ {#yellow}󰅐  {#90}uptime" },
+    { "type": "packages", "key": "{#magenta}│ {#yellow}󰏖  {#90}pkgs" },
+    { "type": "custom", "format": "{#magenta}├─ {#bold_magenta}desktop" },
+    { "type": "wm", "key": "{#magenta}│ {#yellow}󰕮  {#90}wm" },
+    { "type": "terminal", "key": "{#magenta}│ {#yellow}󰆍  {#90}term" },
+    { "type": "shell", "key": "{#magenta}│ {#yellow}󱆃  {#90}shell" },
+    // only the biggest screen, without refresh rate (several monitors would be one line each)
+    { "type": "display", "key": "{#magenta}│ {#yellow}󰍹  {#90}res", "compactType": "original" },
+    { "type": "custom", "format": "{#magenta}├─ {#bold_magenta}hardware" },
+    { "type": "cpu", "key": "{#magenta}│ {#yellow}󰻠  {#90}cpu" },
+    // the dedicated GPU if there is one (like before: integrated Radeon/Intel hidden)
+    { "type": "gpu", "key": "{#magenta}│ {#yellow}󰢮  {#90}gpu", "hideType": "integrated" },
+    { "type": "memory", "key": "{#magenta}│ {#yellow}󰍛  {#90}memory" },
+    { "type": "custom", "format": "{#magenta}╰─ {#31}󰝥 {#32}󰝥 {#33}󰝥 {#34}󰝥 {#35}󰝥 {#36}󰝥 {#37}󰝥" }
+  ]
+}

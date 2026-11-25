@@ -1,0 +1,1 @@
+-- ~/.config/nvim/lua/shiori/init.lua --

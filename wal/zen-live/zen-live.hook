@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = zen-browser-bin
+
+[Action]
+Description = Zen: Live-Farben (AutoConfig) wieder einspielen
+When = PostTransaction
+Exec = /usr/local/share/zen-live/apply.sh

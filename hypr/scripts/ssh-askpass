@@ -1,0 +1,35 @@
+#!/bin/bash
+# SSH_ASKPASS program: asks for the SSH key's passphrase in a pinentry-qt window
+# (same window as for gpg). ssh-add calls it with the prompt text as $1 and reads the
+# passphrase from stdout. Cancel -> exit 1, then the key stays locked.
+# If SSH_ASKPASS_RESULT is set (ssh-unlock.sh), it contains "cancelled" afterwards (cancelled by the user)
+# or "failed" (the window did not open) -> ssh-unlock.sh only tries again in the second case.
+# pinentry errors go to $XDG_RUNTIME_DIR/ssh-unlock.log.
+
+LOG="${XDG_RUNTIME_DIR:-/tmp}/ssh-unlock.log"
+result() { [ -n "$SSH_ASKPASS_RESULT" ] && echo "$1" > "$SSH_ASKPASS_RESULT"; }
+
+desc="${1:-Passphrase for the SSH key}"
+# Assuan protocol: %, CR and LF in the text must be percent-encoded
+esc() { local s=${1//%/%25}; s=${s//$'\r'/%0D}; printf '%s' "${s//$'\n'/%0A}"; }
+
+out=$(printf 'SETTITLE Unlock SSH key\nSETDESC %s\nSETPROMPT Passphrase:\nGETPIN\nBYE\n' \
+    "$(esc "$desc")" | pinentry-qt 2>>"$LOG")
+rc=$?
+
+# Answer line "D <passphrase>" (also percent-encoded); if it is missing, the user cancelled
+if ! line=$(grep -m1 '^D ' <<<"$out"); then
+    # Cancel/Esc gives "ERR 83886179 Operation cancelled", anything else is an error
+    if grep -qi '^ERR.*cancel' <<<"$out"; then
+        result cancelled
+    else
+        result failed
+        echo "$(date +%T) askpass: pinentry-qt failed (exit $rc): $(grep -m1 '^ERR' <<<"$out")" >> "$LOG"
+    fi
+    exit 1
+fi
+result ok
+pin=${line#D }
+pin=${pin//%0A/$'\n'}
+pin=${pin//%0D/$'\r'}
+printf '%s\n' "${pin//%25/%}"

@@ -1,0 +1,25 @@
+# Python and Node build output
+__pycache__/
+*.pyc
+node_modules/
+
+# Fetched by the installer (tpm)
+tmux/plugins/
+
+# Machine-specific files (each machine keeps its own)
+nvim/lazy-lock.json
+hypr/modules/monitors.lua
+quickshell/.qmlls.ini
+
+# Private add-ons: link to ~/.config/shiori-shell/addons (see services/Addons.qml)
+quickshell/addons
+
+# Notes for working with Claude Code on this machine
+quickshell/CLAUDE.md
+
+# Generated from the pywal colors on every wallpaper change, or links into ~/.cache/wal
+# (the installer creates the links)
+rmpc/themes/wal.ron
+hypr/hyprtoolkit.conf
+yazi/theme.toml
+yazi/nvim/theme.toml

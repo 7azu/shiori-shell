@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Screenshots of the workspace overview (windows/overview/) with real windows, without disturbing the running
+# shell or the screen (technique: tools/overview-shot.qml). For UI work on the overview.
+#
+#   tools/overview-shot [options]
+#     -o FILE         output PNG (default: $XDG_RUNTIME_DIR/overview-shot.png)
+#     --open N        N images from opening, as fast as possible -> FILE_fNN.png (check the animation)
+#     --close N       N images from closing without a switch (workspace and background fade out)
+#     --monitor NAME  monitor (default: the focused one)
+#     --backdrop      current screenshot of the monitor as the background (grim): shows the fade between
+#                     desktop and overview
+#     --select WS     set the selection to this workspace (check ring + scale)
+#     --slow X        slow motion: all durations times X (with --open/--close, e.g. 25 -> ~10 ms animation time per image)
+# Output: per image the path, time since start (ms), reveal, dim and phase. Exit 1 without an image.
+# Note: the images contain real window contents - do not share them.
+set -uo pipefail
+
+here=$(cd -- "$(dirname -- "$0")" && pwd)
+config=$(dirname -- "$here")
+out="${XDG_RUNTIME_DIR:-/tmp}/overview-shot.png"
+mode=still frames=1 monitor="" backdrop=0 select=0 slow=1
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -o) out=$2; shift 2 ;;
+        --open) mode=open; frames=$2; shift 2 ;;
+        --close) mode=close; frames=$2; shift 2 ;;
+        --monitor) monitor=$2; shift 2 ;;
+        --backdrop) backdrop=1; shift ;;
+        --select) select=$2; shift 2 ;;
+        --slow) slow=$2; shift 2 ;;
+        -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+        *) echo "overview-shot: unknown option $1" >&2; exit 2 ;;
+    esac
+done
+out=$(realpath -m -- "$out")
+[ -n "$monitor" ] || monitor=$(hyprctl monitors -j | python3 -c 'import json,sys; print(next(m["name"] for m in json.load(sys.stdin) if m["focused"]))')
+
+# Own test instance: link the config's subfolders, own shell.qml, own state folder
+work=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/qs-overview-shot.XXXXXX")
+trap 'rm -rf -- "$work"' EXIT
+for d in "$config"/*/; do
+    name=$(basename -- "$d")
+    [ "$name" = tools ] || ln -s -- "$d" "$work/$name"
+done
+cp -- "$here/overview-shot.qml" "$work/shell.qml"
+
+bd=""
+if [ "$backdrop" = 1 ]; then
+    bd="$work/backdrop.png"
+    grim -o "$monitor" "$bd" || bd=""
+fi
+
+rm -f -- "$out" "${out%.png}"_f*.png
+OV_OUT=$out OV_MODE=$mode OV_FRAMES=$frames OV_MONITOR=$monitor OV_BACKDROP=$bd OV_SELECT=$select OV_SLOWMO=$slow \
+XDG_STATE_HOME="$work/state" \
+    timeout $(( 40 + frames * 2 )) qs -p "$work" 2>&1 | grep -E 'OV-SHOT|TypeError|ReferenceError|Error:' \
+    | sed -E 's/^.*(OV-SHOT|TypeError|ReferenceError)/\1/'
+[ -e "$out" ] || compgen -G "${out%.png}_f*.png" >/dev/null || exit 1

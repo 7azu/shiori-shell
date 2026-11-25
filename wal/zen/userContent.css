@@ -1,0 +1,34 @@
+/* Reader view (about:reader, F9) like Obsidian: text Literata, headings Fraunces, code
+   JetBrainsMono. Only here, because Zen sets the text there itself - on normal pages
+   forced fonts would break icons and layouts. Active through
+   toolkit.legacyUserProfileCustomizations.stylesheets in user.js. */
+@-moz-document url-prefix("about:reader") {
+    body,
+    .moz-reader-content,
+    .moz-reader-content p,
+    .moz-reader-content li {
+        font-family: "Literata", "Noto Serif CJK JP", serif !important;
+    }
+
+    .reader-title,
+    .moz-reader-content h1,
+    .moz-reader-content h2,
+    .moz-reader-content h3 {
+        font-family: "Fraunces", "Noto Serif CJK JP", serif !important;
+    }
+
+    .moz-reader-content pre,
+    .moz-reader-content code,
+    .moz-reader-content kbd,
+    .moz-reader-content samp {
+        font-family: "JetBrainsMono Nerd Font Mono", monospace !important;
+    }
+}
+
+/* YouTube (incl. YouTube Music) completely in JetBrainsMono, like Quickshell/Steam.
+   Safe here, because YouTube draws its icons as SVG, not as an icon font. */
+@-moz-document domain("youtube.com") {
+    * {
+        font-family: "JetBrainsMono Nerd Font", "Noto Sans CJK JP", sans-serif !important;
+    }
+}
