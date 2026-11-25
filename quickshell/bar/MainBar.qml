@@ -271,6 +271,9 @@ PanelWindow {
 
         for (let i = 0; i < ids.length; i++) items[ids[i]].parent = reorderHolder
         for (let i = 0; i < ids.length; i++) items[ids[i]].parent = row
+        // Lay out right away: an icon that is still hidden here (Bluetooth before the adapter reports in)
+        // and turns visible before the Row's next layout pass keeps its space but is never drawn.
+        row.forceLayout();
     }
 
     function dragTo(group, id, px) {
