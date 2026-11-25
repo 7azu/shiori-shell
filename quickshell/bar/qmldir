@@ -21,3 +21,4 @@ EditBadge 1.0 EditBadge.qml
 DrawerSlot 1.0 DrawerSlot.qml
 BarDrawer 1.0 BarDrawer.qml
 BarIconGroup 1.0 BarIconGroup.qml
+SettingsButton 1.0 SettingsButton.qml

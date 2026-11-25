@@ -122,6 +122,7 @@ Item {
         DropdownHeader {
             glyph: "\u{F04E6}"
             title: "Sync"
+            settingsSection: "sync"
 
             Chip {
                 tone: dropdown.overall[1]

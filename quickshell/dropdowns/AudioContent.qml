@@ -209,6 +209,7 @@ Item {
         DropdownHeader {
             glyph: "󰝚"
             title: "Now playing"
+            settingsSection: "desktop"
 
             Chip {
                 visible: AudioState.hasPlayer

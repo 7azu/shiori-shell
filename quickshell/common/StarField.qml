@@ -34,16 +34,21 @@ Item {
     property real sparkleOpacity: 0.8
 
     property real time: 0
+    // Setting "desktop.stars" (settings window): off | calm | animated. Applies to every sky: off draws
+    // nothing, calm keeps the stars but stops twinkling, drift and shooting stars
+    readonly property string mode: (Settings.data.desktop || {
+    }).stars || "animated"
+    readonly property bool live: animated && mode === "animated"
 
     FrameAnimation {
-        running: field.animated && field.visible && field.opacity > 0.01
+        running: field.live && field.visible && field.opacity > 0.01
         onTriggered: field.time += frameTime
     }
 
     ShaderEffect {
         property real time: field.time
         property real strength: field.strength
-        property real twinkle: field.animated ? 1 : 0
+        property real twinkle: field.live ? 1 : 0
         property real cellScale: field.cellScale
         property real starSize: field.starSize
         property vector2d size: Qt.vector2d(width, height)
@@ -51,6 +56,7 @@ Item {
         property color starColor: field.starColor
 
         anchors.fill: parent
+        visible: field.mode !== "off"
         fragmentShader: Qt.resolvedUrl("shaders/starfield.frag.qsb")
     }
 
@@ -100,7 +106,7 @@ Item {
             id: meteorTimer
 
             interval: 4000
-            running: field.shootingStars && field.animated && field.visible && field.opacity > 0.01
+            running: field.shootingStars && field.live && field.visible && field.opacity > 0.01
             repeat: true
             onTriggered: {
                 // Start somewhere in the upper right area, so the trail runs through the picture
@@ -115,7 +121,7 @@ Item {
     // Place rounded to whole pixels (half pixels made the fine rays flicker); the parallax
     // shifts the star as a finished image (layer, softly filtered) - so it glides smoothly
     Repeater {
-        model: field.sparkles
+        model: field.mode === "off" ? [] : field.sparkles
 
         Sparkle {
             required property var modelData
@@ -132,7 +138,7 @@ Item {
             color: Qt.lighter(WalColors.color7, 1.05)
             glowColor: WalColors.vividAccent
             // Each in its own rhythm; calm = fixed medium brightness
-            twinkle: field.animated ? 0.5 + 0.5 * Math.sin(field.time * (0.5 + modelData[3] * 0.06) + modelData[3]) : 0.6
+            twinkle: field.live ? 0.5 + 0.5 * Math.sin(field.time * (0.5 + modelData[3] * 0.06) + modelData[3]) : 0.6
             opacity: field.sparkleOpacity
         }
 

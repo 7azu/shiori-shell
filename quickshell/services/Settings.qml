@@ -14,7 +14,79 @@ Singleton {
     readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME") || home + "/.config"
     readonly property string userFile: configHome + "/shiori-shell/settings.json"
     property var data: ({})
+    // The two sources of data: the shipped defaults and what the user's file holds
+    property var defaults: ({})
+    property var own: ({})
     property var xdgDirs: ({})
+
+    function dig(obj, path) {
+        let v = obj;
+        for (const k of path.split(".")) {
+            if (v === null || typeof v !== "object")
+                return undefined;
+
+            v = v[k];
+        }
+        return v;
+    }
+
+    // Value by path ("desktop.stars"); undefined if unset
+    function get(path) {
+        return dig(data, path);
+    }
+
+    function defaultOf(path) {
+        return dig(defaults, path);
+    }
+
+    // Writes one value to the user's file (the settings window, services/SettingsState). The file only
+    // holds what differs: a value equal to the default (or undefined) is removed there. Takes effect at
+    // once, the file watcher then only confirms it.
+    function set(path, value) {
+        const next = JSON.parse(JSON.stringify(own));
+        const keys = path.split(".");
+        const chain = [next];
+        let node = next;
+        for (let i = 0; i < keys.length - 1; i++) {
+            const k = keys[i];
+            if (!node[k] || typeof node[k] !== "object" || Array.isArray(node[k]))
+                node[k] = {
+            };
+
+            node = node[k];
+            chain.push(node);
+        }
+        const last = keys[keys.length - 1];
+        if (value === undefined || JSON.stringify(value) === JSON.stringify(defaultOf(path)))
+            delete node[last];
+        else
+            node[last] = value;
+        // Objects that became empty go too
+        for (let i = keys.length - 2; i >= 0; i--) {
+            if (Object.keys(chain[i + 1]).length > 0)
+                break;
+
+            delete chain[i][keys[i]];
+        }
+        own = next;
+        data = merged(defaults, next);
+        userSettings.setText(JSON.stringify(next, null, 2) + "\n");
+    }
+
+    // The user's values over the defaults, key by key (one level deep)
+    function merged(base, over) {
+        const out = Object.assign({
+        }, base);
+        for (const key in over) {
+            const v = over[key];
+            if (v && typeof v === "object" && !Array.isArray(v) && out[key] && typeof out[key] === "object")
+                out[key] = Object.assign({
+            }, out[key], v);
+            else
+                out[key] = v;
+        }
+        return out;
+    }
 
     // Folder by key ("wallpapers", "screenshots", "music", "languages", "books", "notes"), without
     // trailing slash; "" if unset
@@ -100,18 +172,18 @@ Singleton {
 
         }
         xdgDirs = dirs;
-        const merged = parseJson(defaultsFile.text(), "defaults/settings.json");
-        const own = parseJson(userSettings.text(), userFile);
-        for (const key in own) {
-            const v = own[key];
-            if (v && typeof v === "object" && !Array.isArray(v) && merged[key] && typeof merged[key] === "object")
-                merged[key] = Object.assign({}, merged[key], v);
-            else
-                merged[key] = v;
-        }
-        data = merged;    }
+        defaults = parseJson(defaultsFile.text(), "defaults/settings.json");
+        own = parseJson(userSettings.text(), userFile);
+        data = merged(defaults, own);
+    }
 
     Component.onCompleted: load()
+
+    // Create the folder, so the first save works
+    Process {
+        command: ["mkdir", "-p", root.configHome + "/shiori-shell"]
+        running: true
+    }
 
     FileView {
         id: defaultsFile

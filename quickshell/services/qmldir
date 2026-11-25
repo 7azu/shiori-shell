@@ -51,3 +51,4 @@ singleton CodexUsage 1.0 CodexUsage.qml
 singleton ShortcutState 1.0 ShortcutState.qml
 singleton Addons 1.0 Addons.qml
 singleton Settings 1.0 Settings.qml
+singleton SettingsState 1.0 SettingsState.qml

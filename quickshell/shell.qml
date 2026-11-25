@@ -2,6 +2,7 @@ import "./services"
 import "./bar"
 import "./dropdowns"
 import "./pickers"
+import "./settings"
 import "./windows"
 import QtQuick
 import Quickshell
@@ -50,6 +51,24 @@ ShellRoot {
     }
 
     CalculatorWindow {}
+
+    // Settings window (settings/SettingsWindow.qml): Super + , the gear in the bar, the gear in a dropdown
+    GlobalShortcut {
+        name: "toggle_settings"
+        description: "Toggle Settings"
+        onPressed: SettingsState.toggle()
+    }
+
+    IpcHandler {
+        target: "settings"
+        function toggle(): void { SettingsState.toggle(); }
+        // page: system, appearance, desktop, bar, folders, sync, languages, icons, addons ("" = last one)
+        function open(page: string): void { SettingsState.openAt(page); }
+        function close(): void { SettingsState.close(); }
+        function isOpen(): bool { return SettingsState.open; }
+    }
+
+    SettingsWindow {}
 
     // Volume keys / volume knob of the keyboard: show the popup, max. 100 %
     GlobalShortcut {

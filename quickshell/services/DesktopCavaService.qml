@@ -66,7 +66,10 @@ Singleton {
     property real shownStrip: 0
     // Is it being seen right now? Otherwise the frames are not processed. Computed here instead of set by the
     // window: on hot reload the old window unregistered the service after the new one had registered it
-    readonly property bool watched: !menuHold && !locked && !!homeMonitor && !!homeMonitor.activeWorkspace && homeMonitor.activeWorkspace.id === homeWorkspace
+    // Setting "desktop.visualizer" (settings window): off = the wave sinks as in silence and cava stops
+    readonly property bool enabled: (Settings.data.desktop || {
+    }).visualizer !== false
+    readonly property bool watched: enabled && !menuHold && !locked && !!homeMonitor && !!homeMonitor.activeWorkspace && homeMonitor.activeWorkspace.id === homeWorkspace
     readonly property string conf: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/qs-cava-desktop.conf"
     readonly property string confText: ["[general]", "bars=" + bars, "framerate=60", "autosens=0", "sensitivity=" + sensitivity,
         // after 2 s of silence cava sleeps (no FFT, no output) until sound comes again
@@ -88,7 +91,7 @@ Singleton {
 
         // runs permanently; in silence cava sleeps by itself.
         // setpriv --pdeathsig: cava dies with Quickshell instead of running on as an orphan
-        running: true
+        running: root.enabled
         command: ["sh", "-c", "printf '%s' \"$1\" > \"$2\" && exec setpriv --pdeathsig KILL cava -p \"$2\"", "sh", root.confText, root.conf]
 
         stdout: SplitParser {

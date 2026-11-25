@@ -45,6 +45,7 @@ hl.bind(mainMod .. " + K",     hl.dsp.global("quickshell:toggle_calendar"), { de
 hl.bind(mainMod .. " + T",     hl.dsp.global("quickshell:toggle_task_manager"), { description = "Quickshell: Open task manager" })
 hl.bind(mainMod .. " + J",     hl.dsp.global("quickshell:toggle_language"), { description = "Quickshell: Open language picker" })
 hl.bind(mainMod .. " + P",     hl.dsp.global("quickshell:toggle_power_menu"), { description = "Quickshell: Open power menu" })
+hl.bind(mainMod .. " + comma", hl.dsp.global("quickshell:toggle_settings"), { description = "Quickshell: Open settings" })
 -- lock screen directly (SUPER + L is focus right); lock.sh itself makes sure only one runs (flock)
 hl.bind(mainMod .. " + CTRL + L", hl.dsp.exec_cmd(scripts .. "lock.sh"), { description = "Quickshell: Lock screen" })
 

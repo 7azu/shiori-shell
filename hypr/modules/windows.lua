@@ -157,6 +157,7 @@ hl.window_rule({
 --  rule name                  namespace                       alpha  animation
 local blurred_layers = {
   { "calculator-blur",        "quickshell:calculator",        0.1, "fade" },
+  { "settings-blur",          "quickshell:settings",          0.1, "fade" },
   { "powermenu-blur",         "quickshell:powermenu",         0.3, "fade" },
   { "pickers-blur",           "quickshell:pickers",           0.1, "fade" },
   { "screenshot-editor-blur", "quickshell:screenshot-editor", 0.1, "fade" },

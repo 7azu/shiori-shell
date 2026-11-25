@@ -57,6 +57,16 @@ Singleton {
                 "file": e.id
             });
         }
+        // The shell's own settings window is found like an app (settings/SettingsWindow.qml)
+        if (!seen["Shiori Settings"])
+            apps.push({
+            "name": "Shiori Settings",
+            "exec": "qs ipc call settings open ''",
+            "icon": "preferences-system",
+            "terminal": false,
+            "file": "shiori-settings"
+        });
+
         apps.sort((a, b) => {
             return a.name.localeCompare(b.name);
         });

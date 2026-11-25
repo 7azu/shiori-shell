@@ -29,7 +29,7 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 </p>
 <p align="center">
   <img src="docs/clips/lock.webp" width="49%" alt="Power menu and lock screen">
-  <img src="docs/screenshots/launcher.jpg" width="49%" alt="App launcher">
+  <img src="docs/clips/settings.webp" width="49%" alt="Settings window: one page per area, every change is saved at once">
 </p>
 
 <details>
@@ -40,6 +40,7 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 | ![Wallpaper picker](docs/screenshots/wallpaper-picker.jpg) | ![Music picker](docs/screenshots/music.jpg) |
 | ![Language choice](docs/screenshots/language-choice.jpg) | ![Calendar](docs/screenshots/calendar.jpg) |
 | ![Bluetooth](docs/screenshots/bluetooth.jpg) | ![Power menu](docs/screenshots/power-menu.jpg) |
+| ![App launcher](docs/screenshots/launcher.jpg) | |
 
 </details>
 
@@ -70,6 +71,7 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 - Screenshot editor and video editor (trim, crop, compress with HandBrake)
 - Encrypted folders (gocryptfs) that unlock with a password in the file browser and yazi
 - Calculator, volume and brightness popups, notification toasts
+- A settings window for all of it (`Super + ,` or the gear in the bar)
 - Audio visualizer on the desktop
 
 **Colors from the wallpaper** (with [pywal](https://github.com/dylanaraps/pywal))
@@ -146,6 +148,7 @@ right in the picker.
 | `Super + N` | Notifications |
 | `Super + K` | Calendar |
 | `Super + P` | Power menu |
+| `Super + ,` | Settings |
 | `Super + Ctrl + L` | Lock screen |
 | `Super + S` | Screenshot |
 | `Super + Shift + S` | Screenshot into the editor |
@@ -175,6 +178,11 @@ can be bound with `hl.dsp.global("quickshell:<name>")`; the names are listed in 
 
 Your own settings live in `~/.config/shiori-shell/`, outside the repo, so `git pull` never touches them.
 
+The settings window (`Super + ,`, the gear in the bar or the gear in a dropdown) edits them for you: which
+bar icons and features are on, folders, sync entries, translation, your own app icons, the audio
+visualizer and the starry sky. Every change is saved at once and can be undone. It writes the same files
+described below, so editing them by hand keeps working.
+
 ### settings.json
 
 Merged over `quickshell/defaults/settings.json` key by key and reloaded on save. In paths, `~`, `$HOME`
@@ -196,6 +204,9 @@ and the XDG folders (`$PICTURES`, `$MUSIC`, `$DOCUMENTS`, `$DOWNLOAD`, `$VIDEOS`
   ]
 }
 ```
+
+**`desktop`**: `"visualizer": false` turns the audio wave on workspace 1 off, `"stars"` is `"off"`, `"calm"`
+or `"animated"` for the sky in the power menu, lock screen and workspace overview.
 
 **`folders`**: where wallpapers, screenshots, music, language material and notes are.
 - When you change `music`, change `music_directory` in `mpd/mpd.conf` to match.

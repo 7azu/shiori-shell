@@ -18,6 +18,9 @@ import Quickshell.Widgets
 // (scripts/media_sort.py): first shows where the dates come from and what changes, Enter sorts, Esc cancels.
 // Selecting a file reports picked(); what happens then (same editor, other editor,
 // confirmation for unsaved changes) is decided by the editor.
+// chooseFolder (settings window, page Folders): the browser picks a folder instead of a file. A button at the
+// bottom right and Ctrl+Enter report folderChosen() with the folder that is shown; files are only there to
+// recognize the folder, and nothing is marked, moved or trashed.
 Item {
     id: browser
 
@@ -175,6 +178,12 @@ Item {
 
     signal picked(string path, string kind)
     signal dismissed()
+    // Folder chooser instead of file browser, see the head of the file
+    property bool chooseFolder: false
+    // Rounding of the surface that covers what is underneath (the editors' card is rounded, the settings page is not)
+    property real backdropRadius: Theme.radiusXL
+
+    signal folderChosen(string path)
     // The password field had the focus: the editor should take it back (keys go to handleKey)
     signal wantsKeys()
 
@@ -247,6 +256,8 @@ Item {
         if (e.type === "folder") {
             selectAfterLoad = "";
             navigate(e.path, 1);
+        } else if (chooseFolder) {
+            showNotice("Go into a folder, then choose it");
         } else {
             picked(e.path, e.kind);
         }
@@ -383,6 +394,16 @@ Item {
         if (ctrl && key === Qt.Key_H) {
             up();
             return ;
+        }
+        if (chooseFolder) {
+            if (ctrl && (key === Qt.Key_Return || key === Qt.Key_Enter)) {
+                folderChosen(st.dir);
+                return ;
+            }
+            // No file operations in a chooser
+            if (!searching && (key === Qt.Key_Space || (!ctrl && (key === Qt.Key_X || key === Qt.Key_P || key === Qt.Key_D))))
+                return ;
+
         }
         if (searching) {
             if (key === Qt.Key_Escape) {
@@ -670,7 +691,7 @@ Item {
     // Covers the card (same color and rounding: the card only clips rectangularly)
     Rectangle {
         anchors.fill: parent
-        radius: Theme.radiusXL
+        radius: browser.backdropRadius
         opacity: browser.backdropK
         color: Qt.tint(WalColors.color0, WalColors.withAlpha(WalColors.color7, 0.04))
 
@@ -1859,8 +1880,57 @@ Item {
                 font.weight: Font.Medium
             }
 
+            // Folder chooser: take the folder that is shown
+            Rectangle {
+                visible: browser.chooseFolder && !browser.st.locked
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                width: chooseRow.implicitWidth + Theme.px(28)
+                height: Theme.px(30)
+                radius: height / 2
+                color: chooseMouse.containsMouse ? Qt.lighter(Theme.accent, 1.1) : Theme.accent
+                scale: chooseMouse.pressed ? 0.97 : 1
+
+                Row {
+                    id: chooseRow
+
+                    anchors.centerIn: parent
+                    spacing: Theme.px(10)
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Choose this folder"
+                        color: Theme.onAccent
+                        font.family: Theme.fontUi
+                        font.pixelSize: Theme.sizeBody
+                        font.weight: Font.DemiBold
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Ctrl + Enter"
+                        color: Theme.onAccent
+                        opacity: 0.6
+                        font.family: Theme.fontUi
+                        font.pixelSize: Theme.sizeSmall
+                    }
+
+                }
+
+                MouseArea {
+                    id: chooseMouse
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: browser.folderChosen(browser.st.dir)
+                }
+
+            }
+
             // Status on the right: how much is marked and what is ready to paste
             Row {
+                visible: !browser.chooseFolder
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Theme.px(8)

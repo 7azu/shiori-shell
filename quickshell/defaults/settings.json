@@ -9,6 +9,10 @@
     "projects": ""
   },
   "languageFolders": {},
+  "desktop": {
+    "visualizer": true,
+    "stars": "animated"
+  },
   "translation": {
     "provider": "auto",
     "ollamaModel": "qwen2.5:7b",

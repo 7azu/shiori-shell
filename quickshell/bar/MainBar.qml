@@ -956,6 +956,23 @@ PanelWindow {
                             height: 1
                         }
 
+                        // Settings window: the gear between the logo (with its drawer) and the shortcuts button,
+                        // same kind of tile as that one (see SettingsButton)
+                        SettingsButton {
+                            id: settingsBtn
+
+                            height: Theme.px(32)
+                            enabled: panelWindow.iconShown("settings")
+                            reveal: BarIcons.shown("settings") ? 1 : panelWindow.editReveal
+
+                            // Only on/off (group empty = not movable)
+                            EditBadge {
+                                mainBar: panelWindow
+                                iconId: "settings"
+                            }
+
+                        }
+
                         BarIcon {
                             id: shortcutsButton
 

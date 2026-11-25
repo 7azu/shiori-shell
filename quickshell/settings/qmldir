@@ -1,0 +1,13 @@
+SettingsWindow 1.0 SettingsWindow.qml
+SettingsView 1.0 SettingsView.qml
+SettingsRail 1.0 SettingsRail.qml
+SettingsPage 1.0 SettingsPage.qml
+SettingsFooter 1.0 SettingsFooter.qml
+SettingRow 1.0 SettingRow.qml
+SettingField 1.0 SettingField.qml
+SettingStepper 1.0 SettingStepper.qml
+SettingChips 1.0 SettingChips.qml
+MapEditor 1.0 MapEditor.qml
+SystemPage 1.0 SystemPage.qml
+SyncPage 1.0 SyncPage.qml
+Seal 1.0 Seal.qml
