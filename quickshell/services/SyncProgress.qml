@@ -37,9 +37,10 @@ QtObject {
     // Start of the session (Unix seconds, 0 = none): results from then on count as fresh.
     // By a click (begin) or automatically once a run from a timer/login is seen.
     property double since: 0
-    // Started by a click: entries that have not begun yet wait (queued)
+    // Started by a click: entries that have not begun yet wait (queued). clickedAt: id -> Unix seconds of
+    // the click; a file from before it belongs to the previous run and does not count for the row
     property bool clicked: false
-    property var clickedIds: []
+    property var clickedAt: ({})
     // Last read state: progress files by id, rclone stats/transferred by id
     property var files: ({})
     property var stats: ({})
@@ -61,9 +62,20 @@ QtObject {
 
     // From the sync button or a row button: expand the started entries as waiting right away
     function begin(ids) {
-        since = Date.now() / 1000 - 2;
+        if (ids.length === 0)
+            return ;
+
+        // A click while rows are still expanded joins that session: waiting rows and fresh results of the
+        // other entries stay (a second click used to collapse them)
+        const now = Date.now() / 1000;
+        const joining = anyActive && since > 0;
+        const at = joining && clicked ? Object.assign({}, clickedAt) : {};
+        for (const id of ids) at[id] = now
+        clickedAt = at;
+        if (!joining)
+            since = now - 2;
+
         clicked = true;
-        clickedIds = ids;
         lingerTimer.stop();
         recompute();
         poll();
@@ -283,7 +295,8 @@ QtObject {
             info.tone = "accent";
             info.progress = s && s.totalBytes > 0 ? Math.min(1, s.bytes / s.totalBytes) : -1;
             if (f.step <= 0) {
-                info.label = "Connecting";
+                // Before the first folder: what the run reports (unlocking the key, waiting for the VPN ...)
+                info.label = f.label || "Connecting";
                 info.detail = "";
             } else if (s && (s.totalTransfers > 0 || active.length > 0)) {
                 info.label = "Syncing " + folder + of;
@@ -321,8 +334,11 @@ QtObject {
         }
         const out = {};
         for (const e of SyncState.entries) {
-            const waiting = clicked && clickedIds.includes(e.id) && SyncState.isRunning(e.id);
-            out[e.id] = e.kind === "rclone" ? rcloneInfo(e.id, d[e.id], waiting) : gitInfo(d[e.id], waiting);
+            const at = clicked ? (clickedAt[e.id] || 0) : 0;
+            const waiting = at > 0 && SyncState.isRunning(e.id);
+            // Same 2 s tolerance as SyncState.settleRequests
+            const f = d[e.id] && at > 0 && d[e.id].run < at - 2 ? null : d[e.id];
+            out[e.id] = e.kind === "rclone" ? rcloneInfo(e.id, f, waiting) : gitInfo(f, waiting);
         }
         infos = out;
         if (busy)
@@ -404,6 +420,8 @@ QtObject {
         onTriggered: {
             root.since = 0;
             root.clicked = false;
+            root.clickedAt = ({
+            });
             root.recompute();
         }
     }

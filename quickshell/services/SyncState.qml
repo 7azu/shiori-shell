@@ -7,7 +7,9 @@ import Quickshell.Io
 // The entries come from "sync" in the settings (services/Settings, ~/.config/shiori-shell/settings.json);
 // scripts/shiori_sync.py knows the types (git, rclone, command), checks and syncs them. A sync runs as
 // its own systemd unit (shiori-sync-<id>), so it keeps going while Quickshell reloads. Progress and the
-// last result come from $XDG_RUNTIME_DIR/sync-progress/<id>.json (services/SyncProgress).
+// last result come from $XDG_RUNTIME_DIR/sync-progress/<id>.json (services/SyncProgress). That folder is gone
+// after a reboot, so the script also keeps the last successful sync in the state folder (check: "synced").
+// A run that was killed is closed by the next check (shiori_sync.py, sync_progress.stale).
 Singleton {
     id: root
 
@@ -16,7 +18,7 @@ Singleton {
     // [{id, name, icon, kind, subtitle, rcSocket, prompt, hasCheck, hasInput}]
     property var entries: []
     readonly property bool hasEntries: entries.length > 0
-    // Result of the last check per id: {pending, changed, unpushed, subtitle, files, state, message, prompt, time}
+    // Result of the last check per id: {pending, changed, unpushed, subtitle, files, state, message, prompt, time, synced}
     property var checks: ({})
     // Started by a click, the unit has not reported yet: id -> ms
     property var requested: ({})
@@ -44,9 +46,9 @@ Singleton {
     readonly property var offlineEntry: firstWith("offline")
     readonly property var inputEntry: firstWith("input")
     readonly property bool locked: keyLocked || firstWith("locked") !== null
-    // Newest finished sync (Unix seconds)
+    // Newest successful sync (Unix seconds); failed runs do not count
     readonly property double lastTime: entries.reduce((t, e) => {
-        return Math.max(t, finishedAt(e.id));
+        return Math.max(t, syncedAt(e.id));
     }, 0)
 
     // A run of an entry ended without error (bar icon: star)
@@ -89,6 +91,14 @@ Singleton {
         return Math.max(f && f.state !== "running" ? f.time : 0, c.time || 0);
     }
 
+    // Last successful sync of an entry: this session's progress file, a check that knows its own runs
+    // (state + time) or "synced", which shiori_sync.py keeps across reboots
+    function syncedAt(id) {
+        const f = progressFile(id);
+        const c = checks[id] || {};
+        return Math.max(f && f.state === "ok" ? f.time : 0, c.synced || 0, c.time && (!c.state || c.state === "ok") ? c.time : 0);
+    }
+
     function firstWith(state) {
         for (const e of entries) {
             if (!isRunning(e.id) && lastState(e.id) === state)
@@ -121,6 +131,10 @@ Singleton {
         }).map((e) => {
             return e.id;
         });
+        // Everything is running already (second click): nothing to start
+        if (ids.length === 0)
+            return ;
+
         SyncProgress.begin(ids);
         for (const id of ids) start(id)
     }
@@ -293,6 +307,7 @@ Singleton {
         property string value: ""
 
         stdinEnabled: true
+        // The pipe stays open after the write, so the script reads exactly one line (not until the end of the input)
         onStarted: {
             write(value + "\n");
             value = "";

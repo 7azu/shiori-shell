@@ -3,8 +3,8 @@ import QtQuick
 
 // Bar icon for the sync entries from the settings (services/SyncState.qml):
 // Hover opens the dropdown (dropdowns/SyncContent.qml), a click syncs.
-// The symbol shows the state (spins during the sync, check mark after success, warning on error, offline,
-// lock = SSH key locked), next to it the number of changes not uploaded yet
+// The symbol shows the state (spins during the sync, check mark after success, warning on error, key = an
+// entry needs input such as a 2FA code, offline, lock = SSH key locked), next to it the number of changes not uploaded yet
 // (like the percentage at the Claude icon).
 // Performance (an earlier version stuttered on a laptop): the rotation jumps in 30° steps
 // instead of making the bar redraw permanently at 60 fps.
@@ -15,6 +15,8 @@ BarIcon {
     readonly property bool offline: SyncState.offlineEntry !== null
     readonly property bool syncing: SyncState.running
     readonly property bool locked: SyncState.locked
+    // An entry waits for input (e.g. a 2FA code): the field is in the dropdown
+    readonly property bool needsInput: SyncState.inputEntry !== null
     // Shortly after a successful sync
     property bool flash: false
     readonly property int pending: SyncState.pending
@@ -32,14 +34,14 @@ BarIcon {
         if (flash)
             return Theme.good;
 
-        if (offline)
+        if (needsInput || offline)
             return Theme.warn;
 
         // Locked is not an error: lock in the normal bar color
         return WalColors.color2;
     }
-    // Nerd Font Material: sync, check, alert, wifi-off, lock (during the sync always the sync icon)
-    readonly property string glyph: String.fromCodePoint(syncing ? 0xf04e6 : (failed ? 0xf0026 : (flash ? 0xf012c : (offline ? 0xf05aa : (locked ? 0xf033e : 0xf04e6)))))
+    // Nerd Font Material: sync, check, alert, key, wifi-off, lock (during the sync always the sync icon)
+    readonly property string glyph: String.fromCodePoint(syncing ? 0xf04e6 : (failed ? 0xf0026 : (flash ? 0xf012c : (needsInput ? 0xf030b : (offline ? 0xf05aa : (locked ? 0xf033e : 0xf04e6))))))
 
     // With a number like the Claude icon (tighter, pill a bit wider), without like the other icons
     padding: showCount ? 8 : 16

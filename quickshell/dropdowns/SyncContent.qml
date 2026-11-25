@@ -94,8 +94,8 @@ Item {
         if (st === "error")
             return ["failed" + (ago ? " · " + ago : ""), Theme.bad];
 
-        // Entries without a check (e.g. rclone) only know when they last ran
-        return e.hasCheck && e.kind !== "rclone" ? ["up to date", Theme.good] : [ago || "up to date", Theme.good];
+        // Entries without a check (e.g. rclone) only know when they last synced
+        return e.hasCheck && e.kind !== "rclone" ? ["up to date", Theme.good] : [SyncState.agoOf(SyncState.syncedAt(e.id)) || "up to date", Theme.good];
     }
 
     implicitWidth: menuWidth + 2 * cornerRadius

@@ -204,7 +204,8 @@ and the XDG folders (`$PICTURES`, `$MUSIC`, `$DOCUMENTS`, `$DOWNLOAD`, `$VIDEOS`
 
 **`sync`**: one row per entry in the sync dropdown. Without entries there is no sync icon.
 - Types: `git` (commit, fetch, merge, push), `rclone` (bisync of folders), `command` (your own script).
-- `"sshKey": true` unlocks your SSH key before a sync, `"sshKey": "~/.ssh/<key>"` uses that key instead.
+- `"sshKey": true` unlocks your SSH key before a sync, `"sshKey": "~/.ssh/<key>"` uses that key instead
+  (without a passphrase it is used directly and no passphrase window appears; with one it is unlocked in the agent).
 
 **`icons`**: your own icons for apps or windows (files in `~/.config/shiori-shell/icons`).
 

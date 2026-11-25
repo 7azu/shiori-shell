@@ -150,7 +150,9 @@ def report_files(vault, direction, *diff_args):
 
 
 def git_progress(vault, *args, timeout=None):
-    # fetch/push with a percentage in the dropdown; without a helper silent as before
+    # fetch/push with a percentage in the dropdown; without a helper silent as before.
+    # timeout = seconds without output (stalled connection), not for the whole transfer: a large push may
+    # take minutes. Only the silent fallback has to limit the whole call.
     if not progress:
         return git(vault, *args, "-q", timeout=timeout)
     cmd = ["git", "-C", os.fsdecode(vault), *(os.fsdecode(a) for a in args[:1]), "--progress",

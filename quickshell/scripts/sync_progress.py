@@ -11,6 +11,8 @@ while a sync runs or the dropdown is open. Content:
   pct, detail           progress within the step (git: percent, size | speed)
   up, down              the first files per direction as [status, path], upCount/downCount = all
   summary               result text after the run
+  owner                 PID of the shell's run (shiori_sync.py run), kept by start: while a file says
+                        "running" but this process is gone, the run was killed (shiori_sync.py check)
 
 From the shell:
   sync_progress.py start <id> [<steps>]
@@ -18,6 +20,8 @@ From the shell:
   sync_progress.py files <id> up|down [--strip PREFIX]   (stdin: output of git diff --name-status)
   sync_progress.py done <id> <state> [<result>]
   sync_progress.py run <id> -- git fetch --progress ...   (take the percentage from git, the exit code stays)
+      SYNC_PROGRESS_STALL=<seconds> in the environment: stop the command after that long without any
+      output (stalled connection), exit code 124
 
 From Python (git_sync.py): import sync_progress; sync_progress.start("notes", 5) ...
 Errors while writing are ignored: the display must never hold up the sync.
@@ -66,9 +70,25 @@ def update(part, **fields):
     _save(part, data)
 
 
-def start(part, steps=0):
-    _save(part, {"run": time.time(), "state": "running", "step": 0, "steps": steps, "label": "Starting",
-                 "pct": -1, "detail": "", "up": [], "upCount": 0, "down": [], "downCount": 0, "summary": ""})
+def alive(pid):
+    return bool(pid) and os.path.exists(f"/proc/{pid}")
+
+
+def stale(data):
+    """The file still says running, but the run of the shell that owned it is gone (killed)."""
+    return data.get("state") == "running" and bool(data.get("owner")) and not alive(data["owner"])
+
+
+def start(part, steps=0, owner=None):
+    data = {"run": time.time(), "state": "running", "step": 0, "steps": steps, "label": "Starting",
+            "pct": -1, "detail": "", "up": [], "upCount": 0, "down": [], "downCount": 0, "summary": ""}
+    # A sync script that reports its own start inside a run of the shell keeps that run's owner
+    old = _load(part)
+    if not owner and old.get("state") == "running" and alive(old.get("owner")):
+        owner = old["owner"]
+    if owner:
+        data["owner"] = owner
+    _save(part, data)
 
 
 def step(part, number, label):
@@ -97,17 +117,17 @@ def parse_name_status(text):
 
 def run(part, cmd, timeout=None):
     """Starts cmd (git fetch/push with --progress) and takes over its percentage display. Other output
-    on stderr is passed through. Returns the exit code; on timeout -> subprocess.TimeoutExpired."""
+    on stderr is passed through. Returns the exit code. timeout = seconds without any output (a stalled
+    connection) -> subprocess.TimeoutExpired; a transfer that still reports progress is never cut off,
+    however long it takes."""
     proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
-    deadline = time.monotonic() + timeout if timeout else None
     buffer = b""
     last_write = 0.0
     last = None
     assert proc.stderr is not None
     fd = proc.stderr.fileno()
     while True:
-        wait = None if deadline is None else max(0.0, deadline - time.monotonic())
-        ready, _, _ = select.select([fd], [], [], wait)
+        ready, _, _ = select.select([fd], [], [], timeout or None)
         if not ready:
             proc.kill()
             proc.wait()
@@ -142,7 +162,13 @@ def main(argv):
     if command == "run":
         cmd = argv[3:] if argv[2:3] == ["--"] else argv[2:]
         try:
-            return run(part, cmd)
+            stall = float(os.environ.get("SYNC_PROGRESS_STALL") or 0)
+        except ValueError:
+            stall = 0
+        try:
+            return run(part, cmd, timeout=stall or None)
+        except subprocess.TimeoutExpired:
+            return 124
         except OSError:
             return 127
     if command == "start":
