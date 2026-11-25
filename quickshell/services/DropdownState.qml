@@ -5,7 +5,7 @@ pragma Singleton
 Singleton {
     id: root
 
-    property string current: "" // "", "audio", "stats", "vpn", "claude", "battery", "sync"
+    property string current: "" // "", "audio", "stats", "vpn", "claude", "battery", "screen", "sync"
     property real anchorX: 0 // icon center in screen coordinates
     property string hoveredIcon: ""
     property bool dropdownHovered: false

@@ -24,6 +24,7 @@ OPTIONAL = [
     ("bluetoothctl", "bluetooth"), ("upower", "battery"), ("yazi", "file manager"), ("nvim", "editor"),
     ("tmux", "terminal multiplexer"), ("fcitx5", "input method"), ("claude", "Claude usage icon"),
     ("codex", "Codex usage icon"), ("openrgb", "RGB colors from the wallpaper"), ("starship", "prompt"),
+    ("hyprsunset", "night light"),
 ]
 # Looked up for rows of the window ("needs"), beyond the optional list
 ALSO = ["cliphist", "nmcli"]

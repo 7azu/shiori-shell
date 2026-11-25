@@ -88,6 +88,12 @@ hl.config({
   misc = {
     allow_session_lock_restore = true,
   },
+
+  -- Color changes of the night light (hyprsunset) apply at once. Hyprland's own fade takes 1.5 s per
+  -- change and stalled the compositor for about 0.6 s of that (measured), one direct change about 40 ms.
+  render = {
+    ctm_animation = 0,
+  },
 })
 
 -- ┌────────────────────────────────────────────────────────────┐

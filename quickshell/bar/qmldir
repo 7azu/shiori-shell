@@ -22,3 +22,4 @@ DrawerSlot 1.0 DrawerSlot.qml
 BarDrawer 1.0 BarDrawer.qml
 BarIconGroup 1.0 BarIconGroup.qml
 SettingsButton 1.0 SettingsButton.qml
+ScreenToggle 1.0 ScreenToggle.qml

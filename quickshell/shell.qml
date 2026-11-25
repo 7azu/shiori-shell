@@ -99,6 +99,27 @@ ShellRoot {
         interval: 1000
     }
 
+    // Night light and keep awake (bar icon "screen"): no keys by default, bind them on the Shortcuts page
+    GlobalShortcut {
+        name: "toggle_night_light"
+        onPressed: NightLight.toggle()
+    }
+
+    GlobalShortcut {
+        name: "toggle_keep_awake"
+        onPressed: KeepAwake.toggle()
+    }
+
+    IpcHandler {
+        target: "screen"
+        // mode: off, auto, on
+        function nightLight(mode: string): void { NightLight.setMode(mode); }
+        function nightLightMode(): string { return NightLight.mode; }
+        // minutes: 0 = off, -1 = until turned off
+        function keepAwake(minutes: int): void { KeepAwake.set(minutes); }
+        function isAwake(): bool { return KeepAwake.active; }
+    }
+
     // Brightness keys use the same service as the slider in the battery dropdown.
     GlobalShortcut {
         name: "brightness_down"

@@ -11,6 +11,7 @@ Item {
     property string glyph: ""
     property color glyphColor: Theme.text
     property string label: "" // appears before the percentage on hover
+    property string valueText: "" // shown instead of the percentage (e.g. "4000 K")
     readonly property bool pressed: area.pressed
     readonly property bool active: area.containsMouse || area.pressed
     readonly property real iconW: 30
@@ -111,7 +112,7 @@ Item {
         Text {
             id: pct
 
-            text: Math.round(slider.value * 100) + "%"
+            text: slider.valueText !== "" ? slider.valueText : Math.round(slider.value * 100) + "%"
             color: Theme.text
             font.family: Theme.fontUi
             font.features: Theme.tabular

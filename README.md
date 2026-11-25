@@ -52,6 +52,8 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 - Drawer with shortcuts to the pickers (clipboard, trash, Wi-Fi, Bluetooth, apps, language tool)
 - Dropdowns for audio, system stats (CPU, GPU, RAM, disks), VPN, battery, sync, and the usage
   limits of Claude Code and Codex
+- Screen dropdown: a night light that follows sunset and sunrise (or your own times), and keep awake,
+  which stops the automatic lock for a while
 - Edit mode: right-click the logo on the left to hide or show icons. A hidden icon also turns its feature off.
 
 **Pickers** (full-screen, keyboard first)
@@ -176,7 +178,8 @@ Media, volume, brightness and calculator keys work as expected.
 These are the defaults. The settings window has a page **Shortcuts**: click a shortcut and press the new
 keys, `Backspace` removes it, and the main modifier can be switched from Super to Alt for all of them. A
 shortcut that is already taken says by what and offers to replace it. Groups (`Super + 1 … 0`, focus and
-move keys) and the special keys follow the main modifier but are not changed one by one.
+move keys) and the special keys follow the main modifier but are not changed one by one. "Toggle night
+light" and "Toggle keep awake" have no keys at first; give them some on that page if you want them.
 
 All bindings are in `hypr/modules/keybindings.lua`. More shell actions (Wi-Fi, Bluetooth, airplane mode,
 moving the bar) can be bound with `hl.dsp.global("quickshell:<name>")`; the names are listed in
@@ -215,6 +218,14 @@ and the XDG folders (`$PICTURES`, `$MUSIC`, `$DOCUMENTS`, `$DOWNLOAD`, `$VIDEOS`
 
 **`desktop`**: `"visualizer": false` turns the audio wave on workspace 1 off, `"stars"` is `"off"`, `"calm"`
 or `"animated"` for the sky in the power menu, lock screen and workspace overview.
+
+**`night`**: the night light of the screen dropdown (needs `hyprsunset`, which the installer brings).
+- `"mode"` is `"off"`, `"auto"` or `"on"`; the dropdown and a click on the bar icon change it.
+- `"schedule"` says when `auto` keeps the screen warm: `"sun"` (sunset to sunrise) or `"custom"`
+  (`"from": "20:00"`, `"until": "07:00"`). `auto` warms the screen slowly over half an hour.
+- `"temperature"` is the color temperature at full warmth in Kelvin, `2000` to `6000` (default `4000`).
+- The sun times come from your time zone, nothing is asked on the network. For exact times put your place
+  into `~/.config/quickshell-local/location.json` as `{"lat": 48.1, "lon": 11.6}`.
 
 **`keys`**: your keyboard shortcuts, written by the Shortcuts page. `"mod": "ALT"` makes Alt the main
 modifier, `"binds": { "terminal": "SUPER + Return", "trash": "" }` gives one shortcut other keys or

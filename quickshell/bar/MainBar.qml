@@ -230,7 +230,7 @@ PanelWindow {
 
     // ==== Order of the icons (edit mode: changeable by dragging, see BarIcons) ====
     function groupIds(group) {
-        return group === "left" ? ["clipboard", "trash", "bluetooth", "wifi", "apps", "media", "monitor", "ja"] : ["sync", "claude", "vpn", "audio", "stats", "battery"];
+        return group === "left" ? ["clipboard", "trash", "bluetooth", "wifi", "apps", "media", "monitor", "ja"] : ["sync", "claude", "vpn", "audio", "stats", "screen", "battery"];
     }
 
     function groupItems(group) {
@@ -249,6 +249,7 @@ PanelWindow {
             "vpn": iconGroup.vpnBtn,
             "audio": iconGroup.atBtn,
             "stats": iconGroup.stBtn,
+            "screen": iconGroup.scBtn,
             "battery": iconGroup.batBtn
         };
     }

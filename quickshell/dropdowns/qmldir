@@ -8,6 +8,7 @@ DropdownHeader 1.0 DropdownHeader.qml
 DropdownHost 1.0 DropdownHost.qml
 CardButton 1.0 CardButton.qml
 PillSlider 1.0 PillSlider.qml
+ScreenContent 1.0 ScreenContent.qml
 Ring 1.0 Ring.qml
 Stat 1.0 Stat.qml
 StatsContent 1.0 StatsContent.qml

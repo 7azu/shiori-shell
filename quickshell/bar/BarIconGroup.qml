@@ -1,7 +1,7 @@
 import "../services"
 import QtQuick
 
-// Icon group on the right (sync, Claude, VPN, audio, stats, battery) with a shared pill: hover opens the icon's
+// Icon group on the right (sync, Claude, VPN, audio, stats, screen, battery) with a shared pill: hover opens the icon's
 // dropdown. The power icon has none and therefore stands on its own at the far right (MainBar.qml, after the clock).
 // Part of MainBar.qml (mainBar = core).
 Item {
@@ -14,11 +14,12 @@ Item {
     property alias stBtn: stBtn
     property alias batBtn: batBtn
     property alias syBtn: syBtn
+    property alias scBtn: scBtn
     property int hoveredIndex: -1
     // Index = position in dropdownIds (fixed, independent of the order in the bar)
-    readonly property var icons: [atBtn, stBtn, vpnBtn, clBtn, batBtn, syBtn]
-    readonly property var dropdownIds: ["audio", "stats", "vpn", "claude", "battery", "sync"]
-    readonly property real reveal: Math.max(syBtn.reveal, clBtn.reveal, vpnBtn.reveal, atBtn.reveal, stBtn.reveal, batBtn.reveal)
+    readonly property var icons: [atBtn, stBtn, vpnBtn, clBtn, batBtn, syBtn, scBtn]
+    readonly property var dropdownIds: ["audio", "stats", "vpn", "claude", "battery", "sync", "screen"]
+    readonly property real reveal: Math.max(syBtn.reveal, clBtn.reveal, vpnBtn.reveal, atBtn.reveal, stBtn.reveal, batBtn.reveal, scBtn.reveal)
     readonly property real pillWidth: Math.round(18 + 16 * BarState.density)
     readonly property int lockedIndex: dropdownIds.indexOf(DropdownState.current)
     readonly property string hoveredId: hoveredIndex >= 0 ? dropdownIds[hoveredIndex] : ""
@@ -196,6 +197,21 @@ Item {
             EditBadge {
                 mainBar: iconGroup.mainBar
                 iconId: "stats"
+                group: "right"
+            }
+
+        }
+
+        ScreenToggle {
+            id: scBtn
+
+            enabled: mainBar.iconShown("screen")
+            reveal: BarIcons.shown("screen") ? 1 : mainBar.editReveal
+            itemGap: innerRow.itemGap
+
+            EditBadge {
+                mainBar: iconGroup.mainBar
+                iconId: "screen"
                 group: "right"
             }
 

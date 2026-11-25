@@ -16,6 +16,13 @@
   "keys": {
     "mod": "SUPER"
   },
+  "night": {
+    "mode": "off",
+    "schedule": "sun",
+    "from": "20:00",
+    "until": "07:00",
+    "temperature": 4000
+  },
   "translation": {
     "provider": "auto",
     "ollamaModel": "qwen2.5:7b",

@@ -36,6 +36,7 @@ PanelWindow {
         "vpn": vpnLoader,
         "claude": claudeLoader,
         "battery": batteryLoader,
+        "screen": screenLoader,
         "sync": syncLoader
     })
     readonly property var shownItem: slots[shownId] ? slots[shownId].item : null
@@ -290,6 +291,16 @@ PanelWindow {
                     slotId: "battery"
 
                     sourceComponent: BatteryContent {
+                    }
+
+                }
+
+                Slot {
+                    id: screenLoader
+
+                    slotId: "screen"
+
+                    sourceComponent: ScreenContent {
                     }
 
                 }

@@ -53,3 +53,5 @@ singleton Keybinds 1.0 Keybinds.qml
 singleton Addons 1.0 Addons.qml
 singleton Settings 1.0 Settings.qml
 singleton SettingsState 1.0 SettingsState.qml
+singleton NightLight 1.0 NightLight.qml
+singleton KeepAwake 1.0 KeepAwake.qml

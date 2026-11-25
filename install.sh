@@ -312,7 +312,7 @@ CONFIGS=(
 # Everything the shell uses, installed without asking. Parts you do not use can be switched off in the shell.
 PACKAGES=(
     # compositor, shell, colors, screenshots, clipboard, fonts
-    hyprland hypridle hyprpolkitagent
+    hyprland hypridle hyprpolkitagent hyprsunset
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
     quickshell qt6-multimedia qt6-multimedia-ffmpeg qt6-imageformats qt6-svg qt6-5compat qt6ct
     pipewire pipewire-pulse wireplumber
@@ -352,7 +352,7 @@ PROGRAMS=(
     "uv|language tool Python packages|0" "bluetoothctl|bluetooth|0" "upower|battery|0"
     "rclone|sync|0" "gocryptfs|encrypted vault|0" "nft|VPN killswitch|0"
     "linux-wallpaperengine|Wallpaper Engine backgrounds|0" "claude|Claude usage icon|0"
-    "codex|Codex usage icon|0" "openrgb|RGB colors from the wallpaper|0"
+    "codex|Codex usage icon|0" "openrgb|RGB colors from the wallpaper|0" "hyprsunset|night light|0"
 )
 
 # ─────────────────────────────── helpers ───────────────────────────────

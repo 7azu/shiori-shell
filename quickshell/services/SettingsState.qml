@@ -94,7 +94,44 @@ Singleton {
         "seal": "卓",
         "blurb": "What moves on the desktop, and how calm it is.",
         "file": "settings",
+        "words": "night light blue filter warm color temperature sunset sunrise hyprsunset redshift",
         "groups": [{
+            "title": "Night light",
+            "footer": "Switched on and off in the bar (screen icon). Auto warms the screen slowly over half an hour after the start and cools it again before the end.",
+            "rows": [{
+                "key": "settings:night.schedule",
+                "label": "Schedule",
+                "desc": "When Auto keeps the screen warm. Sunset and sunrise come from your time zone, nothing is asked on the network.",
+                "type": "choice",
+                "needs": ["hyprsunset"],
+                "options": [{
+                    "value": "sun",
+                    "label": "Sun times"
+                }, {
+                    "value": "custom",
+                    "label": "Own times"
+                }]
+            }, {
+                "key": "settings:night.from",
+                "label": "From",
+                "desc": "Start of your own times, as 20:00. Also used where the sun does not set.",
+                "type": "text"
+            }, {
+                "key": "settings:night.until",
+                "label": "Until",
+                "desc": "End of your own times, as 07:00.",
+                "type": "text"
+            }, {
+                "key": "settings:night.temperature",
+                "label": "Warmth",
+                "desc": "Color temperature at full warmth. Lower is warmer; an untouched screen has about 6500 K.",
+                "type": "number",
+                "min": 2000,
+                "max": 6000,
+                "step": 100,
+                "unit": "K"
+            }]
+        }, {
             "title": "Visualizer",
             "rows": [{
                 "key": "settings:desktop.visualizer",
@@ -137,7 +174,7 @@ Singleton {
             "rows": [feature("clipboard", "Clipboard history", "Copied text and images.", ["cliphist"]), feature("trash", "Trash", "Deleted files, to restore or empty.", []), feature("bluetooth", "Bluetooth", "Devices around you.", ["bluetoothctl"]), feature("wifi", "Wi-Fi", "Networks around you.", ["nmcli"]), feature("apps", "App launcher", "Start apps from the bar.", []), feature("media", "Media picker", "Add-on, only present with the media add-on.", ["mpv"]), feature("monitor", "Monitors", "Move the bar to another monitor.", []), feature("ja", "Language tool", "Listen, read and keep track in the languages you learn.", ["mpv", "yt-dlp"])]
         }, {
             "title": "Status, right",
-            "rows": [feature("sync", "Sync", "Git folders, cloud drives and your own sync commands.", []), feature("claude", "AI usage", "Limits and tokens of Claude Code and Codex.", []), feature("vpn", "VPN", "Connection, location and throughput.", ["nmcli"]), feature("audio", "Audio", "What is playing, volume and outputs.", []), feature("stats", "System stats", "Processor, graphics, memory and disk.", []), feature("battery", "Battery", "Charge and power.", ["upower"])]
+            "rows": [feature("sync", "Sync", "Git folders, cloud drives and your own sync commands.", []), feature("claude", "AI usage", "Limits and tokens of Claude Code and Codex.", []), feature("vpn", "VPN", "Connection, location and throughput.", ["nmcli"]), feature("audio", "Audio", "What is playing, volume and outputs.", []), feature("stats", "System stats", "Processor, graphics, memory and disk.", []), feature("screen", "Screen", "Night light and keep awake.", []), feature("battery", "Battery", "Charge and power.", ["upower"])]
         }, {
             "title": "Fixed places",
             "rows": [feature("settings", "Settings", "The gear next to the logo that opens this window. Super + , works without it.", []), feature("power", "Power menu", "At the far right: shut down, restart, lock, log out.", [])]
