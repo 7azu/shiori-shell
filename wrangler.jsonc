@@ -1,0 +1,8 @@
+// Cloudflare Workers: serves the project page in docs/ as static files.
+{
+  "name": "shiori-shell",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./docs"
+  }
+}

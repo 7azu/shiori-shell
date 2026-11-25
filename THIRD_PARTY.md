@@ -5,8 +5,8 @@ their own licenses. The full texts are in `licenses/`.
 
 | Part | Where | Source | License |
 |---|---|---|---|
-| Space Grotesk font | `quickshell/resources/fonts/SpaceGrotesk.ttf` | github.com/floriankarsten/space-grotesk | SIL OFL 1.1 (`licenses/SpaceGrotesk-OFL.txt`) |
-| Fraunces font | `quickshell/resources/fonts/Fraunces.ttf` | github.com/undercasetype/Fraunces | SIL OFL 1.1 (`licenses/Fraunces-OFL.txt`) |
+| Space Grotesk font | `quickshell/resources/fonts/SpaceGrotesk.ttf`, `docs/fonts/SpaceGrotesk.woff2` | github.com/floriankarsten/space-grotesk | SIL OFL 1.1 (`licenses/SpaceGrotesk-OFL.txt`) |
+| Fraunces font | `quickshell/resources/fonts/Fraunces.ttf`, `docs/fonts/Fraunces*.woff2` | github.com/undercasetype/Fraunces | SIL OFL 1.1 (`licenses/Fraunces-OFL.txt`) |
 | Country flags | `quickshell/resources/flags/*.svg` | github.com/lipis/flag-icons | MIT (`licenses/flag-icons-MIT.txt`) |
 | World map data | `quickshell/resources/globe/` (made by `scripts/make-globe-map.py`) | Natural Earth, naturalearthdata.com | Public domain |
 | Power menu icons | `quickshell/resources/icons/*.png` | Material Design Icons (pictogrammers.com), rendered from the Nerd Font | Apache 2.0 |

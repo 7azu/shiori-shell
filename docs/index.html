@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shiori-shell</title>
+<meta name="description" content="A desktop shell and dotfiles for Hyprland, built with Quickshell. Every color comes from your wallpaper.">
+<meta property="og:title" content="shiori-shell">
+<meta property="og:description" content="A desktop shell and dotfiles for Hyprland, built with Quickshell. Every color comes from your wallpaper.">
+<meta property="og:image" content="screenshots/desktop.jpg">
+<meta name="theme-color" content="#0c0b0d">
+<style>
+@font-face { font-family: "Fraunces"; src: url("fonts/Fraunces.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Fraunces"; src: url("fonts/Fraunces-Italic.woff2") format("woff2"); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: "Space Grotesk"; src: url("fonts/SpaceGrotesk.woff2") format("woff2"); font-weight: 300 700; font-style: normal; font-display: swap; }
+@property --accent  { syntax: "<color>"; inherits: true; initial-value: #d9c2a3; }
+@property --accent2 { syntax: "<color>"; inherits: true; initial-value: #8fb8b0; }
+
+:root {
+  --bg: #0c0b0d;
+  --bg2: #131215;
+  --line: rgba(255, 255, 255, .08);
+  --text: #ece8e1;
+  --muted: #9a958d;
+  --radius: 14px;
+  --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --sans: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "Fira Code", "Cascadia Code", Menlo, Consolas, monospace;
+  transition: --accent 1.2s ease, --accent2 1.2s ease;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16.5px/1.65 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+::selection { background: color-mix(in srgb, var(--accent) 40%, transparent); }
+
+/* ambient background: two slow blobs in the current colors, over a fine grid */
+.ambient { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.ambient::before {
+  content: ""; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
+  opacity: .5;
+}
+.blob { position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%; filter: blur(120px); opacity: .16; }
+.blob.a { background: var(--accent);  top: -30vmax; left: -15vmax; animation: drift 38s ease-in-out infinite alternate; }
+.blob.b { background: var(--accent2); top: 20vmax; right: -30vmax; animation: drift 46s ease-in-out infinite alternate-reverse; }
+@keyframes drift { to { transform: translate3d(8vmax, 6vmax, 0) scale(1.15); } }
+
+/* scroll progress */
+.progress { position: fixed; top: 0; left: 0; height: 2px; width: 100%; z-index: 30;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transform-origin: 0 50%; transform: scaleX(0); }
+
+.wrap { width: min(1120px, 100% - 40px); margin-inline: auto; }
+
+/* nav */
+nav { position: sticky; top: 12px; z-index: 20; margin-top: 12px; }
+nav .bar {
+  display: flex; align-items: center; gap: 22px;
+  padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+nav .brand { font-family: var(--serif); font-style: italic; font-size: 18px; letter-spacing: 0; display: flex; align-items: center; gap: 10px; }
+nav .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px var(--accent); }
+nav .links { margin-left: auto; display: flex; gap: 20px; font-size: 14px; color: var(--muted); }
+nav .links a { transition: color .2s; }
+nav .links a:hover { color: var(--text); }
+nav .gh { color: var(--bg); background: var(--accent); padding: 5px 14px; border-radius: 999px; font-size: 14px; font-weight: 500; }
+@media (max-width: 640px) { nav .links a:not(.gh) { display: none; } }
+
+/* hero */
+.hero { padding: 96px 0 40px; text-align: center; }
+.eyebrow { font-size: 13px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); }
+h1 {
+  margin: 20px auto 20px; max-width: 13ch;
+  font-family: var(--serif); font-optical-sizing: auto;
+  font-size: clamp(44px, 8vw, 104px); line-height: 1; letter-spacing: -.03em; font-weight: 340;
+}
+h1 em {
+  font-style: italic; font-weight: 300; padding-right: .06em;
+  background: linear-gradient(100deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lead { max-width: 56ch; margin: 0 auto; color: var(--muted); font-size: 18px; }
+.cta { margin-top: 30px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 999px;
+  border: 1px solid var(--line); font-size: 15px; font-weight: 500;
+  transition: transform .2s, border-color .2s, background .2s;
+}
+.btn:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+.btn.primary { background: var(--accent); color: var(--bg); border-color: transparent; }
+
+/* a framed piece of media with a glow made from the media itself */
+.frame { position: relative; border-radius: var(--radius); }
+.frame .glow {
+  position: absolute; inset: 4%; z-index: -1; border-radius: inherit;
+  background-size: cover; background-position: center;
+  filter: blur(60px) saturate(170%); opacity: .55; transform: translateZ(-1px);
+}
+.frame .shot {
+  border-radius: inherit; overflow: hidden; border: 1px solid var(--line);
+  background: var(--bg2); box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .8);
+}
+.frame .shot img { width: 100%; height: auto; }
+
+.stage { margin: 64px auto 0; perspective: 1400px; perspective-origin: 50% 0%; }
+.tilt { transform-style: preserve-3d; transform-origin: 50% 100%; will-change: transform; }
+
+/* video: nothing is loaded from YouTube until the play button is pressed */
+.video { position: relative; aspect-ratio: 16 / 9; }
+.video .shot { position: absolute; inset: 0; }
+.video .shot img { animation: pan 30s ease-in-out infinite alternate; }
+@keyframes pan { from { transform: scale(1.14) translate(-2.5%, -1.5%); } to { transform: scale(1.14) translate(2.5%, 1.5%); } }
+.video .shot img, .video iframe { width: 100%; height: 100%; object-fit: cover; border: 0; display: block; }
+.video .play {
+  all: unset; position: absolute; inset: 0; cursor: pointer; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, .25), rgba(0, 0, 0, .6)); transition: background .4s;
+}
+.video .play:hover { background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, .1), rgba(0, 0, 0, .5)); }
+.video .play span {
+  width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--bg) 55%, transparent); backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: pulse 2.6s ease-out infinite; transition: transform .3s;
+}
+.video .play:hover span { transform: scale(1.08); }
+.video .play svg { width: 30px; height: 30px; fill: var(--accent); margin-left: 5px; }
+.video .play:focus-visible span { outline: 2px solid var(--accent); outline-offset: 4px; }
+@keyframes pulse { to { box-shadow: 0 0 0 26px transparent; } }
+
+/* sections */
+section { padding: 110px 0; }
+.kicker { font-size: 13px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); }
+h2 { margin: 12px 0 16px; font-family: var(--serif); font-size: clamp(32px, 4.6vw, 54px); line-height: 1.06; letter-spacing: -.025em; font-weight: 360; }
+.sub { color: var(--muted); max-width: 60ch; margin: 0; }
+
+.row { display: grid; grid-template-columns: 1fr 1.25fr; gap: 56px; align-items: center; margin-top: 90px; }
+.row.flip > .copy { order: 2; }
+.row h3 { margin: 10px 0 12px; font-family: var(--serif); font-size: 30px; line-height: 1.15; letter-spacing: -.02em; font-weight: 380; }
+.row p { color: var(--muted); margin: 0 0 14px; }
+.row ul { margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 15px; }
+.row li { padding: 7px 0 7px 18px; position: relative; border-top: 1px solid var(--line); }
+.row li::before { content: ""; position: absolute; left: 0; top: 17px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+@media (max-width: 860px) { .row { grid-template-columns: 1fr; gap: 28px; margin-top: 64px; } .row.flip > .copy { order: 0; } }
+
+/* feature cards with a spotlight that follows the pointer */
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 44px; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+.card {
+  position: relative; padding: 24px; border-radius: var(--radius); border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg2) 80%, transparent); overflow: hidden;
+}
+.card::before {
+  content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .3s;
+  background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%);
+}
+.card:hover::before { opacity: 1; }
+.card > * { position: relative; }
+.card h4 { margin: 0 0 8px; font-size: 18px; font-weight: 500; letter-spacing: -.01em; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+.card .n { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--accent); letter-spacing: .12em; display: block; margin-bottom: 14px; }
+
+/* filmstrip: two rows of screenshots that pan in opposite directions as the page scrolls */
+.strips { width: 100vw; margin: 70px 0 0 calc(50% - 50vw); overflow: hidden; display: grid; gap: 16px; padding: 30px 0;
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent); }
+.gallery { display: flex; gap: 16px; width: max-content; will-change: transform; }
+.gallery button {
+  all: unset; cursor: zoom-in; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line);
+  position: relative; display: block; flex: none; width: clamp(280px, 36vw, 560px);
+  transition: border-color .3s, transform .5s cubic-bezier(.2, .7, .2, 1);
+}
+.gallery button:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); transform: translateY(-6px); }
+.gallery img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; transition: transform .8s cubic-bezier(.2, .7, .2, 1); }
+.gallery button:hover img { transform: scale(1.06); }
+.gallery span {
+  position: absolute; left: 12px; bottom: 10px; font-family: var(--mono); font-size: 12px;
+  padding: 3px 9px; border-radius: 999px; background: rgba(0, 0, 0, .55); backdrop-filter: blur(6px);
+}
+.gallery button:focus-visible, .btn:focus-visible, .copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+dialog { border: 0; padding: 0; background: transparent; max-width: min(1400px, 94vw); }
+dialog::backdrop { background: rgba(0, 0, 0, .82); backdrop-filter: blur(8px); }
+dialog img { border-radius: var(--radius); max-height: 90vh; width: auto; cursor: zoom-out; }
+
+/* keys */
+.keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; margin-top: 44px; }
+.key { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px;
+  border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--bg2) 80%, transparent);
+  font-size: 15px; color: var(--muted); transition: border-color .25s, color .25s; }
+.key:hover { border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--text); }
+kbd { font-family: var(--mono); font-size: 12px; padding: 3px 8px; border-radius: 6px; color: var(--text);
+  border: 1px solid var(--line); border-bottom-width: 2px; background: var(--bg); white-space: nowrap; }
+
+/* install */
+.terminal { margin-top: 40px; border-radius: var(--radius); border: 1px solid var(--line); background: #08080a; overflow: hidden; }
+.terminal header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.terminal header i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.terminal header i:first-child { background: var(--accent); }
+.terminal header span { margin-left: 8px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.copy-btn { margin-left: auto; font: 12px var(--mono); color: var(--muted); background: none; border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 12px; cursor: pointer; transition: color .2s, border-color .2s; }
+.copy-btn:hover { color: var(--text); border-color: var(--accent); }
+.terminal pre { margin: 0; padding: 22px 20px; font: 15px/1.9 var(--mono); overflow-x: auto; }
+.terminal .p { color: var(--accent); user-select: none; }
+.caret { display: inline-block; width: 8px; height: 1.1em; vertical-align: -3px; background: var(--accent); animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+@media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+.note { margin-top: 22px; color: var(--muted); font-size: 14px; }
+
+footer { border-top: 1px solid var(--line); padding: 34px 0 60px; color: var(--muted); font-size: 14px; }
+footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; }
+footer a:hover { color: var(--text); }
+
+/* reveal on scroll */
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity .9s cubic-bezier(.2, .7, .2, 1), transform .9s cubic-bezier(.2, .7, .2, 1); transition-delay: var(--d, 0s); }
+.reveal.in { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .blob, .caret, .video .play span, .video .shot img { animation: none; }
+  .strips { overflow-x: auto; mask-image: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  :root { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="ambient" aria-hidden="true"><div class="blob a"></div><div class="blob b"></div></div>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<nav>
+  <div class="wrap">
+    <div class="bar">
+      <a class="brand" href="#top"><span class="dot"></span>shiori-shell</a>
+      <div class="links">
+        <a href="#video">Video</a>
+        <a href="#showcase">Showcase</a>
+        <a href="#features">Features</a>
+        <a href="#keys">Keys</a>
+        <a href="#install">Install</a>
+        <a class="gh" href="https://github.com/7azu/shiori-shell">GitHub</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+  <header class="hero wrap">
+    <div class="eyebrow reveal">Hyprland · Quickshell · Arch Linux</div>
+    <h1 class="reveal" style="--d:.08s">Every color comes from your <em>wallpaper.</em></h1>
+    <p class="lead reveal" style="--d:.16s">shiori-shell is a desktop shell and a set of dotfiles for Hyprland. Change the wallpaper, and the bar, terminals, editor and apps follow with a smooth fade.</p>
+    <div class="cta reveal" style="--d:.24s">
+      <a class="btn primary" href="#install">Install</a>
+      <a class="btn" href="https://github.com/7azu/shiori-shell">View on GitHub</a>
+    </div>
+
+    <div class="stage reveal" style="--d:.3s">
+      <div class="frame tilt" id="tilt" data-palette>
+        <div class="glow"></div>
+        <div class="shot"><img src="screenshots/desktop.jpg" width="2557" height="1440" alt="The shiori-shell desktop: bar on top, a terminal and a music player in the colors of the wallpaper"></div>
+      </div>
+    </div>
+  </header>
+
+  <section id="video" class="wrap" style="padding-bottom:0">
+    <div class="kicker reveal">Video</div>
+    <h2 class="reveal">See it in motion.</h2>
+    <div class="frame video reveal" data-palette style="margin-top:40px">
+      <div class="glow"></div>
+      <div class="shot" id="player">
+        <img loading="lazy" src="screenshots/desktop.jpg" alt="">
+        <button class="play" id="play" aria-label="Play the shiori-shell showcase video"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg></span></button>
+      </div>
+    </div>
+    <p class="note reveal">The video is on YouTube and loads when you press play.</p>
+  </section>
+
+  <section id="showcase" class="wrap">
+    <div class="kicker reveal">Showcase</div>
+    <h2 class="reveal">One wallpaper, one palette, everywhere.</h2>
+    <p class="sub reveal">This page works the same way: its colors are taken from whatever screenshot is on screen. Scroll and watch them change.</p>
+
+    <div class="row">
+      <div class="copy reveal">
+        <div class="kicker">Colors</div>
+        <h3>The whole desktop fades to the new colors</h3>
+        <p>Pick a wallpaper with <kbd>Super + W</kbd>, including animated ones and an online search on wallhaven.cc.</p>
+        <ul>
+          <li>Hyprland borders, Quickshell, kitty, Neovim, yazi, tmux, cava</li>
+          <li>GTK and Qt apps, cursor, fcitx5</li>
+          <li>Steam, Zen Browser, Vesktop, Obsidian, OBS and more, when installed</li>
+        </ul>
+      </div>
+      <div class="frame reveal" data-palette><div class="glow"></div><div class="shot"><img loading="lazy" src="clips/wallpaper.webp" alt="Wallpaper change: the whole desktop fades to the new colors"></div></div>
+    </div>
+
+    <div class="row flip">
+      <div class="copy reveal">
+        <div class="kicker">Language tool</div>
+        <h3>Learn a language from your own videos and books</h3>
+        <p>Open it with <kbd>Super + J</kbd>.</p>
+        <ul>
+          <li>Subtitles that follow the speech and translate line by line</li>
+          <li>A reader for your own books, with translation into English</li>
+          <li>For Japanese: furigana, a dictionary and Aozora Bunko</li>
+        </ul>
+      </div>
+      <div class="frame reveal" data-palette><div class="glow"></div><div class="shot"><img loading="lazy" src="clips/language.webp" alt="Language tool: a video with subtitles"></div></div>
+    </div>
+
+    <div class="row">
+      <div class="copy reveal">
+        <div class="kicker">Pickers</div>
+        <h3>Full screen and keyboard first</h3>
+        <p>Every picker opens with one shortcut and closes with Escape.</p>
+        <ul>
+          <li>App launcher and task manager</li>
+          <li>Clipboard history, trash, Wi-Fi, Bluetooth, music for MPD</li>
+          <li>A VPN picker with a globe</li>
+        </ul>
+      </div>
+      <div class="frame reveal" data-palette><div class="glow"></div><div class="shot"><img loading="lazy" src="clips/vpn.webp" alt="VPN picker with a globe"></div></div>
+    </div>
+
+    <div class="row flip">
+      <div class="copy reveal">
+        <div class="kicker">Session</div>
+        <h3>Lock screen and power menu</h3>
+        <p>Lock with <kbd>Super + Ctrl + L</kbd>, open the power menu with <kbd>Super + P</kbd>.</p>
+        <ul>
+          <li>Workspace overview on a right click</li>
+          <li>Volume and brightness popups, notification toasts</li>
+          <li>An audio visualizer on the desktop</li>
+        </ul>
+      </div>
+      <div class="frame reveal" data-palette><div class="glow"></div><div class="shot"><img loading="lazy" src="clips/lock.webp" alt="Power menu and lock screen"></div></div>
+    </div>
+  </section>
+
+  <section id="features" class="wrap">
+    <div class="kicker reveal">Features</div>
+    <h2 class="reveal">A complete desktop, not only a bar.</h2>
+    <div class="grid">
+      <div class="card reveal"><span class="n">01</span><h4>Bar</h4><p>Workspaces, active window, clock with calendar, notifications, and dropdowns for audio, system stats, VPN, battery and sync.</p></div>
+      <div class="card reveal" style="--d:.06s"><span class="n">02</span><h4>Edit mode</h4><p>Right-click the logo to hide or show icons. A hidden icon also turns its feature off.</p></div>
+      <div class="card reveal" style="--d:.12s"><span class="n">03</span><h4>Screenshot and video editor</h4><p>Annotate screenshots, and trim, crop or compress videos with HandBrake.</p></div>
+      <div class="card reveal"><span class="n">04</span><h4>Encrypted folders</h4><p>gocryptfs folders that unlock with a password in the file browser and in yazi.</p></div>
+      <div class="card reveal" style="--d:.06s"><span class="n">05</span><h4>Dotfiles included</h4><p>Hyprland with a Lua config, kitty, Neovim, tmux, yazi, MPD, rmpc, fastfetch and the starship prompt.</p></div>
+      <div class="card reveal" style="--d:.12s"><span class="n">06</span><h4>One installer</h4><p>Installs the packages, links the configs and backs up what was there before.</p></div>
+    </div>
+
+    <div class="strips reveal" id="strips">
+      <div class="gallery" data-dir="1">
+        <button data-full="screenshots/launcher.jpg"><img loading="lazy" src="screenshots/launcher.jpg" alt="App launcher"><span>launcher</span></button>
+        <button data-full="screenshots/wallpaper-picker.jpg"><img loading="lazy" src="screenshots/wallpaper-picker.jpg" alt="Wallpaper picker"><span>wallpapers</span></button>
+        <button data-full="screenshots/music.jpg"><img loading="lazy" src="screenshots/music.jpg" alt="Music picker"><span>music</span></button>
+        <button data-full="screenshots/calendar.jpg"><img loading="lazy" src="screenshots/calendar.jpg" alt="Calendar"><span>calendar</span></button>
+      </div>
+      <div class="gallery" data-dir="-1">
+        <button data-full="screenshots/language-choice.jpg"><img loading="lazy" src="screenshots/language-choice.jpg" alt="Language choice in the language tool"><span>language tool</span></button>
+        <button data-full="screenshots/bluetooth.jpg"><img loading="lazy" src="screenshots/bluetooth.jpg" alt="Bluetooth picker"><span>bluetooth</span></button>
+        <button data-full="screenshots/power-menu.jpg"><img loading="lazy" src="screenshots/power-menu.jpg" alt="Power menu"><span>power menu</span></button>
+        <button data-full="screenshots/desktop.jpg"><img loading="lazy" src="screenshots/desktop.jpg" alt="Desktop"><span>desktop</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section id="keys" class="wrap">
+    <div class="kicker reveal">Keybindings</div>
+    <h2 class="reveal">Everything is one shortcut away.</h2>
+    <div class="keys reveal">
+      <div class="key">App launcher <kbd>Super + Space</kbd></div>
+      <div class="key">Wallpaper picker <kbd>Super + W</kbd></div>
+      <div class="key">Music picker <kbd>Super + M</kbd></div>
+      <div class="key">Clipboard history <kbd>Super + G</kbd></div>
+      <div class="key">VPN picker <kbd>Super + V</kbd></div>
+      <div class="key">Language tool <kbd>Super + J</kbd></div>
+      <div class="key">Task manager <kbd>Super + T</kbd></div>
+      <div class="key">Calendar <kbd>Super + K</kbd></div>
+      <div class="key">Screenshot <kbd>Super + S</kbd></div>
+      <div class="key">Terminal <kbd>Super + Q</kbd></div>
+      <div class="key">File manager <kbd>Super + E</kbd></div>
+      <div class="key">Power menu <kbd>Super + P</kbd></div>
+    </div>
+    <p class="note reveal">The full list is in the <a href="https://github.com/7azu/shiori-shell#keybindings" style="color:var(--accent)">README</a>.</p>
+  </section>
+
+  <section id="install" class="wrap">
+    <div class="kicker reveal">Install</div>
+    <h2 class="reveal">Three commands on Arch Linux.</h2>
+    <p class="sub reveal">The installer brings Hyprland and Quickshell with it. Configs that are already there are moved to a backup folder first.</p>
+
+    <div class="terminal reveal">
+      <header><i></i><i></i><i></i><span>kitty</span><button class="copy-btn" id="copy">copy</button></header>
+<pre id="cmd"><span class="p">$ </span>git clone https://github.com/7azu/shiori-shell.git ~/shiori-shell
+<span class="p">$ </span>cd ~/shiori-shell
+<span class="p">$ </span>./install.sh<span class="caret"></span></pre>
+    </div>
+    <div class="steps">
+      <div class="card reveal"><span class="n">01</span><h4>Packages</h4><p>Hyprland, Quickshell, pywal and the tools the shell uses, with a full system update.</p></div>
+      <div class="card reveal" style="--d:.06s"><span class="n">02</span><h4>Configs</h4><p>Linked into <code>~/.config</code>. Existing ones go to <code>~/.config-backup-shiori-&lt;date&gt;</code>.</p></div>
+      <div class="card reveal" style="--d:.12s"><span class="n">03</span><h4>Log in again</h4><p>Hyprland starts with the default wallpaper and takes the colors from it.</p></div>
+    </div>
+    <p class="note reveal">Requires Arch Linux. With your own setup: Hyprland 0.57.1 or newer and Quickshell 0.3.2 or newer.</p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>shiori-shell</span>
+    <span><a href="https://github.com/7azu/shiori-shell">GitHub</a> · <a href="https://github.com/7azu/shiori-shell/blob/main/LICENSE">License</a> · <a href="https://github.com/7azu/shiori-shell/blob/main/THIRD_PARTY.md">Third-party credits</a></span>
+  </div>
+</footer>
+
+<dialog id="lightbox"><img alt=""></dialog>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* reveal on scroll */
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+  }), { threshold: .12 });
+  document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+
+  /* scroll progress */
+  const bar = document.getElementById("progress");
+  const onScroll = () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    bar.style.transform = `scaleX(${max > 0 ? scrollY / max : 0})`;
+  };
+  addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  /* palette: take two colors from an image, the way the shell does from a wallpaper */
+  const cv = document.createElement("canvas");
+  cv.width = 48; cv.height = 27;
+  const cx = cv.getContext("2d", { willReadFrequently: true });
+
+  function hsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    if (!d) return [0, 0, l];
+    const s = d / (1 - Math.abs(2 * l - 1));
+    let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [(h * 60 + 360) % 360, s, l];
+  }
+  const css = (h, s, l) => `hsl(${h.toFixed(0)} ${(s * 100).toFixed(0)}% ${(l * 100).toFixed(0)}%)`;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  function palette(img) {
+    try {
+      cx.drawImage(img, 0, 0, cv.width, cv.height);
+      const d = cx.getImageData(0, 0, cv.width, cv.height).data;
+      const N = 12, w = new Array(N).fill(0), hx = new Array(N).fill(0), hy = new Array(N).fill(0), ss = new Array(N).fill(0);
+      for (let i = 0; i < d.length; i += 4) {
+        const [h, s, l] = hsl(d[i], d[i + 1], d[i + 2]);
+        const k = s * Math.max(0, 1 - Math.abs(l - .55) * 1.7);
+        if (k < .04) continue;
+        const b = Math.floor(h / (360 / N)) % N, a = h * Math.PI / 180;
+        w[b] += k; hx[b] += Math.cos(a) * k; hy[b] += Math.sin(a) * k; ss[b] += s * k;
+      }
+      const order = w.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]);
+      if (order[0][0] < 2) return null;
+      const pick = i => [(Math.atan2(hy[i], hx[i]) * 180 / Math.PI + 360) % 360, ss[i] / w[i]];
+      const [h1, s1] = pick(order[0][1]);
+      const far = order.find(([v, i]) => v > order[0][0] * .18 && Math.min(Math.abs(i - order[0][1]), N - Math.abs(i - order[0][1])) >= 2);
+      const [h2, s2] = far ? pick(far[1]) : [(h1 + 40) % 360, s1];
+      return [css(h1, clamp(s1, .38, .7), .72), css(h2, clamp(s2, .32, .62), .66)];
+    } catch { return null; }
+  }
+
+  const palettes = new WeakMap();
+  const framed = [...document.querySelectorAll("[data-palette]")];
+  framed.forEach(f => {
+    const img = f.querySelector("img");
+    f.querySelector(".glow").style.backgroundImage = `url("${img.getAttribute("src")}")`;
+    const read = () => { const p = palette(img); if (p) palettes.set(f, p); pickCurrent(); };
+    img.complete && img.naturalWidth ? read() : img.addEventListener("load", read, { once: true });
+  });
+
+  /* the frame closest to the middle of the screen sets the colors */
+  let current = null;
+  function pickCurrent() {
+    const mid = innerHeight / 2;
+    let best = null, dist = Infinity;
+    for (const f of framed) {
+      if (!palettes.has(f)) continue;
+      const r = f.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > innerHeight) continue;
+      const dd = Math.abs((r.top + r.bottom) / 2 - mid);
+      if (dd < dist) { dist = dd; best = f; }
+    }
+    if (best && best !== current) {
+      current = best;
+      const [a, b] = palettes.get(best);
+      root.style.setProperty("--accent", a);
+      root.style.setProperty("--accent2", b);
+    }
+  }
+  let ticking = false;
+  addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => { pickCurrent(); ticking = false; });
+  }, { passive: true });
+  addEventListener("resize", pickCurrent);
+
+  /* motion: the hero unfolds from a tilted plane while scrolling, leans toward the pointer,
+     and the filmstrip pans sideways. Everything is eased in one loop, so nothing jumps. */
+  const tilt = document.getElementById("tilt"), stage = tilt.parentElement;
+  const strips = document.getElementById("strips"), rows = [...strips.querySelectorAll(".gallery")];
+  if (!reduced) {
+    const fine = matchMedia("(pointer: fine)").matches;
+    const c01 = v => Math.min(1, Math.max(0, v));
+    const cur = { h: 0, s: .5, x: 0, y: 0 }, tgt = { h: 0, s: .5, x: 0, y: 0 };
+    let raf = 0, first = true;
+    const measure = () => {
+      const r = stage.getBoundingClientRect();
+      tgt.h = c01(1 - (r.top - innerHeight * .12) / (innerHeight * .7));
+      const g = strips.getBoundingClientRect();
+      tgt.s = c01((innerHeight - g.top) / (innerHeight + g.height));
+    };
+    const draw = () => {
+      const k = first ? 1 : .09; first = false;
+      let rest = 0;
+      for (const key in cur) { cur[key] += (tgt[key] - cur[key]) * k; rest += Math.abs(tgt[key] - cur[key]); }
+      const e = 1 - Math.pow(1 - cur.h, 3), open = 1 - e;
+      tilt.style.transform =
+        `translateY(${(open * -30).toFixed(2)}px) scale(${(.86 + .14 * e).toFixed(4)}) ` +
+        `rotateX(${(open * 26 - cur.y * 4 * e).toFixed(3)}deg) rotateY(${(cur.x * 6 * e).toFixed(3)}deg)`;
+      for (const row of rows) {
+        const span = Math.max(0, row.scrollWidth - innerWidth + 80);
+        const t = row.dataset.dir === "1" ? cur.s : 1 - cur.s;
+        row.style.transform = `translate3d(${(40 - t * span).toFixed(1)}px, 0, 0)`;
+      }
+      raf = rest > .0008 ? requestAnimationFrame(draw) : 0;
+    };
+    const kick = () => { measure(); if (!raf) raf = requestAnimationFrame(draw); };
+    addEventListener("scroll", kick, { passive: true });
+    addEventListener("resize", kick);
+    if (fine) addEventListener("pointermove", e => {
+      tgt.x = e.clientX / innerWidth - .5; tgt.y = e.clientY / innerHeight - .5;
+      if (!raf) raf = requestAnimationFrame(draw);
+    }, { passive: true });
+    kick();
+  }
+
+  /* card spotlight */
+  document.querySelectorAll(".card").forEach(c => c.addEventListener("pointermove", e => {
+    const r = c.getBoundingClientRect();
+    c.style.setProperty("--mx", `${e.clientX - r.left}px`);
+    c.style.setProperty("--my", `${e.clientY - r.top}px`);
+  }));
+
+  /* lightbox */
+  const box = document.getElementById("lightbox"), big = box.querySelector("img");
+  document.querySelectorAll(".gallery button").forEach(b => b.addEventListener("click", () => {
+    big.src = b.dataset.full; big.alt = b.querySelector("img").alt; box.showModal();
+  }));
+  box.addEventListener("click", () => box.close());
+
+  /* video: swap the poster for the player on demand */
+  document.getElementById("play").addEventListener("click", () => {
+    const f = document.createElement("iframe");
+    f.src = "https://www.youtube-nocookie.com/embed/Y_EOes5afZs?autoplay=1&rel=0";
+    f.title = "shiori-shell showcase";
+    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    f.allowFullscreen = true;
+    f.referrerPolicy = "strict-origin-when-cross-origin";
+    document.getElementById("player").replaceChildren(f);
+  });
+
+  /* copy the install commands */
+  const copy = document.getElementById("copy");
+  copy.addEventListener("click", async () => {
+    const text = "git clone https://github.com/7azu/shiori-shell.git ~/shiori-shell\ncd ~/shiori-shell\n./install.sh";
+    try { await navigator.clipboard.writeText(text); copy.textContent = "copied"; }
+    catch { copy.textContent = "select and copy"; }
+    setTimeout(() => copy.textContent = "copy", 1600);
+  });
+})();
+</script>
+</body>
+</html>
