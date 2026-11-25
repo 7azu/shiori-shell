@@ -13,6 +13,9 @@
     "visualizer": true,
     "stars": "animated"
   },
+  "keys": {
+    "mod": "SUPER"
+  },
   "translation": {
     "provider": "auto",
     "ollamaModel": "qwen2.5:7b",

@@ -13,6 +13,7 @@ import Quickshell.Io
 //   machine:<name>    ~/.config/quickshell-local/screens.json (services/MachineConfig, this machine)
 //   bar:<icon id>     bar icon on/off (services/BarIcons, this machine)
 //   addon:<name>      read only, what services/Addons found
+//   keys:<name>       a keybinding (services/Keybinds; the keys go to settings.json, Hyprland reloads)
 // A page with local: true holds values of this machine only (they are not synced), the head says so.
 // Every change is written at once (there is no Save button) and remembered for Undo.
 Singleton {
@@ -141,6 +142,16 @@ Singleton {
             "title": "Fixed places",
             "rows": [feature("settings", "Settings", "The gear next to the logo that opens this window. Super + , works without it.", []), feature("power", "Power menu", "At the far right: shut down, restart, lock, log out.", [])]
         }]
+    }, {
+        // The rows come from Hyprland's config at run time: groupsOf() asks services/Keybinds
+        "id": "shortcuts",
+        "group": 1,
+        "name": "Shortcuts",
+        "seal": "鍵",
+        "blurb": "Which keys do what. Click a shortcut and press the new keys.",
+        "file": "settings",
+        "rows": "keys",
+        "words": "keys keybindings keybinds hotkeys shortcut modifier super bind"
     }, {
         "id": "folders",
         "group": 2,
@@ -332,8 +343,13 @@ Singleton {
         }) || null;
     }
 
+    // Groups of a page: written down in sections, or made at run time (rows: "keys")
+    function groupsOf(sec) {
+        return sec.rows === "keys" ? Keybinds.groups : (sec.groups || []);
+    }
+
     function rowsOf(sec) {
-        return (sec.groups || []).reduce((all, g) => {
+        return groupsOf(sec).reduce((all, g) => {
             return all.concat(g.rows);
         }, []);
     }
@@ -370,6 +386,8 @@ Singleton {
             return BarIcons.shown(name);
         case "addon":
             return (name === "media" ? Addons.media : Addons.editorAction !== null) ? "Installed" : "Not installed";
+        case "keys":
+            return Keybinds.keysOf(name);
         }
         return undefined;
     }
@@ -386,6 +404,8 @@ Singleton {
             })[name];
         case "bar":
             return true;
+        case "keys":
+            return Keybinds.defaultOf(name);
         }
         return undefined;
     }
@@ -395,6 +415,13 @@ Singleton {
         switch (storeOf(key)) {
         case "settings":
             Settings.set(name, value);
+            // The main modifier is read by Hyprland's config
+            if (name === "keys.mod")
+                Keybinds.reload();
+
+            break;
+        case "keys":
+            Keybinds.set(name, value);
             break;
         case "machine":
             if (name === "barScreen") {
@@ -496,7 +523,7 @@ Singleton {
         for (const s of sections) {
             const pageHit = hit(words, s.name + " " + (s.words || ""));
             const rows = rowsOf(s).filter((r) => {
-                return pageHit || hit(words, r.label + " " + r.desc + " " + s.name);
+                return pageHit || hit(words, r.label + " " + (r.desc || "") + " " + s.name);
             });
             if (rows.length === 0 && pageHit)
                 rows.push({

@@ -37,7 +37,28 @@ Singleton {
         "xf86audiolowervolume": "Volume Down",
         "slash": "/",
         "minus": "−",
-        "equal": "="
+        "equal": "=",
+        "comma": ",",
+        "period": ".",
+        "plus": "+",
+        "semicolon": ";",
+        "apostrophe": "'",
+        "backslash": "\\",
+        "bracketleft": "[",
+        "bracketright": "]",
+        "grave": "`",
+        "less": "<",
+        "numbersign": "#",
+        "adiaeresis": "Ä",
+        "odiaeresis": "Ö",
+        "udiaeresis": "Ü",
+        "ssharp": "ß",
+        "backspace": "Backspace",
+        "kp_enter": "Enter",
+        "left": "←",
+        "right": "→",
+        "up": "↑",
+        "down": "↓"
     })
 
     function refresh() {

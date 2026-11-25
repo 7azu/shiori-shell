@@ -40,6 +40,13 @@ PanelWindow {
         }
     }
 
+    // While a shortcut row waits for its keys, Hyprland holds its own shortcuts back: Super + M then
+    // reaches this window instead of opening the music picker. Ends by itself if the window goes away.
+    ShortcutInhibitor {
+        window: win
+        enabled: Keybinds.captureId !== ""
+    }
+
     // Stays on the monitor and workspace where it was opened
     WindowAnchor {
         id: anchor

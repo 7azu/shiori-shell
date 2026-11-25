@@ -49,6 +49,7 @@ singleton CursorColorFade 1.0 CursorColorFade.qml
 singleton AiUsageState 1.0 AiUsageState.qml
 singleton CodexUsage 1.0 CodexUsage.qml
 singleton ShortcutState 1.0 ShortcutState.qml
+singleton Keybinds 1.0 Keybinds.qml
 singleton Addons 1.0 Addons.qml
 singleton Settings 1.0 Settings.qml
 singleton SettingsState 1.0 SettingsState.qml

@@ -12,7 +12,12 @@
 --   Keybindings: apps, Quickshell, windows, workspaces, media
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════
 
-local mainMod = "SUPER"
+-- Bindings made with keys.bind can be changed in the settings window (Shortcuts page, or by hand under
+-- "keys" in ~/.config/shiori-shell/settings.json); the keys here are the defaults. "MOD" stands for the
+-- main modifier, SUPER unless the settings say otherwise. See keys.lua.
+local keys = require("keys")
+
+local mainMod = keys.mod
 
 local scripts = os.getenv("HOME") .. "/.config/hypr/scripts/"
 
@@ -21,50 +26,54 @@ local scripts = os.getenv("HOME") .. "/.config/hypr/scripts/"
 -- └────────────────────────────────────────────────────────────┘
 -- Always in the home folder: otherwise kitty takes Hyprland's working directory, which is the folder
 -- start-hyprland was run from (e.g. the repo right after install.sh)
-hl.bind(mainMod .. " + Q",         hl.dsp.exec_cmd("kitty --directory " .. os.getenv("HOME")), { description = "Apps: Open terminal" })
-hl.bind(mainMod .. " + E",         hl.dsp.exec_cmd(scripts .. "filemanager.sh"), { description = "Apps: Open file manager" })
-hl.bind(mainMod .. " + S",         hl.dsp.exec_cmd(scripts .. "screenshot.sh"), { description = "Apps: Take screenshot" })
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.global("quickshell:screenshot_edit"), { description = "Quickshell: Edit screenshot" }) -- open in the editor instead of saving directly
-hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd(scripts .. "nvim.sh"), { description = "Apps: Open Neovim" })
+keys.bind("terminal",        "MOD + Q",         hl.dsp.exec_cmd("kitty --directory " .. os.getenv("HOME")), "Apps: Open terminal")
+keys.bind("files",           "MOD + E",         hl.dsp.exec_cmd(scripts .. "filemanager.sh"), "Apps: Open file manager")
+keys.bind("screenshot",      "MOD + S",         hl.dsp.exec_cmd(scripts .. "screenshot.sh"), "Apps: Take screenshot")
+-- open in the editor instead of saving directly
+keys.bind("screenshot_edit", "MOD + SHIFT + S", hl.dsp.global("quickshell:screenshot_edit"), "Quickshell: Edit screenshot")
+keys.bind("neovim",          "MOD + SHIFT + N", hl.dsp.exec_cmd(scripts .. "nvim.sh"), "Apps: Open Neovim")
 
 -- restart Quickshell: kill the old instance, wait, then start exactly one new one
 -- (via wrapper: limits jemalloc arenas -> much less RAM, see scripts/quickshell.sh)
-hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.exec_cmd("pkill -x qs; while pgrep -x qs >/dev/null; do sleep 0.1; done; " .. scripts .. "quickshell.sh -n -d"), { description = "Quickshell: Restart Quickshell" })
+keys.bind("restart_shell",   "MOD + SHIFT + Q", hl.dsp.exec_cmd("pkill -x qs; while pgrep -x qs >/dev/null; do sleep 0.1; done; " .. scripts .. "quickshell.sh -n -d"), "Quickshell: Restart Quickshell")
 
 -- ┌────────────────────────────────────────────────────────────┐
 -- │  QUICKSHELL                                                │
 -- └────────────────────────────────────────────────────────────┘
-hl.bind(mainMod .. " + SPACE", hl.dsp.global("quickshell:toggle_launcher"), { description = "Quickshell: Open app launcher" })
-hl.bind(mainMod .. " + M",     hl.dsp.global("quickshell:toggle_music_picker"), { description = "Quickshell: Open music picker" })
-hl.bind(mainMod .. " + W",     hl.dsp.global("quickshell:toggle_wallpaper"), { description = "Quickshell: Pick wallpaper" })
-hl.bind(mainMod .. " + G",     hl.dsp.global("quickshell:toggle_clipboard"), { description = "Quickshell: Open clipboard history" })
-hl.bind(mainMod .. " + X",     hl.dsp.global("quickshell:toggle_trash"), { description = "Quickshell: Open trash" })
-hl.bind(mainMod .. " + V",     hl.dsp.global("quickshell:toggle_vpn"), { description = "Quickshell: Open VPN picker" })
-hl.bind(mainMod .. " + N",     hl.dsp.global("quickshell:toggle_notifications"), { description = "Quickshell: Open notification center" })
-hl.bind(mainMod .. " + K",     hl.dsp.global("quickshell:toggle_calendar"), { description = "Quickshell: Open calendar" })
-hl.bind(mainMod .. " + T",     hl.dsp.global("quickshell:toggle_task_manager"), { description = "Quickshell: Open task manager" })
-hl.bind(mainMod .. " + J",     hl.dsp.global("quickshell:toggle_language"), { description = "Quickshell: Open language picker" })
-hl.bind(mainMod .. " + P",     hl.dsp.global("quickshell:toggle_power_menu"), { description = "Quickshell: Open power menu" })
-hl.bind(mainMod .. " + comma", hl.dsp.global("quickshell:toggle_settings"), { description = "Quickshell: Open settings" })
--- lock screen directly (SUPER + L is focus right); lock.sh itself makes sure only one runs (flock)
-hl.bind(mainMod .. " + CTRL + L", hl.dsp.exec_cmd(scripts .. "lock.sh"), { description = "Quickshell: Lock screen" })
+keys.bind("launcher",      "MOD + SPACE", hl.dsp.global("quickshell:toggle_launcher"), "Quickshell: Open app launcher")
+keys.bind("music",         "MOD + M",     hl.dsp.global("quickshell:toggle_music_picker"), "Quickshell: Open music picker")
+keys.bind("wallpaper",     "MOD + W",     hl.dsp.global("quickshell:toggle_wallpaper"), "Quickshell: Pick wallpaper")
+keys.bind("clipboard",     "MOD + G",     hl.dsp.global("quickshell:toggle_clipboard"), "Quickshell: Open clipboard history")
+keys.bind("trash",         "MOD + X",     hl.dsp.global("quickshell:toggle_trash"), "Quickshell: Open trash")
+keys.bind("vpn",           "MOD + V",     hl.dsp.global("quickshell:toggle_vpn"), "Quickshell: Open VPN picker")
+keys.bind("notifications", "MOD + N",     hl.dsp.global("quickshell:toggle_notifications"), "Quickshell: Open notification center")
+keys.bind("calendar",      "MOD + K",     hl.dsp.global("quickshell:toggle_calendar"), "Quickshell: Open calendar")
+keys.bind("tasks",         "MOD + T",     hl.dsp.global("quickshell:toggle_task_manager"), "Quickshell: Open task manager")
+keys.bind("language",      "MOD + J",     hl.dsp.global("quickshell:toggle_language"), "Quickshell: Open language picker")
+keys.bind("power",         "MOD + P",     hl.dsp.global("quickshell:toggle_power_menu"), "Quickshell: Open power menu")
+keys.bind("settings",      "MOD + comma", hl.dsp.global("quickshell:toggle_settings"), "Quickshell: Open settings")
+-- lock screen directly (MOD + L is focus right); lock.sh itself makes sure only one runs (flock)
+keys.bind("lock",          "MOD + CTRL + L", hl.dsp.exec_cmd(scripts .. "lock.sh"), "Quickshell: Lock screen")
 
 -- ┌────────────────────────────────────────────────────────────┐
 -- │  WINDOWS                                                   │
 -- └────────────────────────────────────────────────────────────┘
-hl.bind(mainMod .. " + C",         hl.dsp.window.close(), { description = "Windows: Close window" })
-hl.bind(mainMod .. " + B",         hl.dsp.window.float({ action = "toggle" }), { description = "Windows: Toggle floating window" })
+keys.bind("close",       "MOD + C",         hl.dsp.window.close(), "Windows: Close window")
+keys.bind("float",       "MOD + B",         hl.dsp.window.float({ action = "toggle" }), "Windows: Toggle floating window")
 -- workspace 1: floating terminal stage <-> tiling (modules/home.lua)
-hl.bind(mainMod .. " + D",         require("home").toggle, { description = "Workspaces: Toggle home workspace layout" })
--- SUPER + F: real fullscreen, SUPER + SHIFT + F: maximized (bar and gaps stay visible)
-hl.bind(mainMod .. " + F",         hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }), { description = "Windows: Toggle fullscreen" })
-hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }), { description = "Windows: Toggle maximized window" })
--- SUPER + P is the power menu (see above)
-hl.bind(mainMod .. " + SHIFT + P", hl.dsp.window.pseudo(), { description = "Windows: Toggle pseudo tiling" })
+keys.bind("home_layout", "MOD + D",         require("home").toggle, "Workspaces: Toggle home workspace layout")
+-- MOD + F: real fullscreen, MOD + SHIFT + F: maximized (bar and gaps stay visible)
+keys.bind("fullscreen",  "MOD + F",         hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }), "Windows: Toggle fullscreen")
+keys.bind("maximize",    "MOD + SHIFT + F", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }), "Windows: Toggle maximized window")
+-- MOD + P is the power menu (see above)
+keys.bind("pseudo",      "MOD + SHIFT + P", hl.dsp.window.pseudo(), "Windows: Toggle pseudo tiling")
+
+-- The bindings from here on are groups and special keys. They follow the main modifier but are not
+-- changed one by one; keys.note only lists them for the settings page.
 
 -- Focus (vim keys) and move windows (SHIFT + vim keys).
--- SUPER + K is the calendar, SUPER + J the language tool (see above);
--- focus up/down works via SUPER + arrow up/down
+-- MOD + K is the calendar, MOD + J the language tool (see above);
+-- focus up/down works via MOD + arrow up/down
 local vim = { H = "l", J = "d", K = "u", L = "r" }
 local directions = { l = "left", d = "down", u = "up", r = "right" }
 for key, dir in pairs(vim) do
@@ -73,26 +82,33 @@ for key, dir in pairs(vim) do
   end
   hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ direction = dir }), { description = "Windows: Move window " .. directions[dir] })
 end
+keys.note("MOD + H / L", "Windows: Focus left or right")
+keys.note("MOD + SHIFT + H J K L", "Windows: Move window")
 
 -- focus with the arrow keys too
 local arrows = { left = "l", down = "d", up = "u", right = "r" }
 for key, dir in pairs(arrows) do
   hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ direction = dir }), { description = "Windows: Focus " .. directions[dir] })
 end
+keys.note("MOD + Arrows", "Windows: Focus in a direction")
 
--- mouse: SUPER + left click moves, SUPER + right click resizes
+-- mouse: MOD + left click moves, MOD + right click resizes
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true, description = "Windows: Drag window" })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true, description = "Windows: Resize window" })
+keys.note("MOD + Left Click", "Windows: Drag window")
+keys.note("MOD + Right Click", "Windows: Resize window")
 
 -- ┌────────────────────────────────────────────────────────────┐
 -- │  WORKSPACES 1-10                                           │
 -- └────────────────────────────────────────────────────────────┘
--- SUPER + number switches, SUPER + SHIFT + number moves the active window (key 0 = workspace 10)
+-- MOD + number switches, MOD + SHIFT + number moves the active window (key 0 = workspace 10)
 for i = 1, 10 do
   local key = tostring(i % 10)
   hl.bind(mainMod .. " + " .. key,         hl.dsp.focus({ workspace = i }), { description = "Workspaces: Switch to workspace " .. i })
   hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }), { description = "Workspaces: Move window to workspace " .. i })
 end
+keys.note("MOD + 1 … 0", "Workspaces: Switch to workspace 1 to 10")
+keys.note("MOD + SHIFT + 1 … 0", "Workspaces: Move window to workspace 1 to 10")
 
 -- ┌────────────────────────────────────────────────────────────┐
 -- │  MEDIA & VOLUME                                            │
@@ -114,6 +130,10 @@ hl.bind("XF86MonBrightnessUp",   hl.dsp.global("quickshell:brightness_up"),   { 
 hl.bind("XF86MonBrightnessDown", hl.dsp.global("quickshell:brightness_down"), { repeating = true, description = "Display: Lower brightness" })
 hl.bind("XF86Calculator",        hl.dsp.global("quickshell:toggle_calculator"), { description = "Quickshell: Open calculator" })
 
+keys.note("Media keys", "Media: Next, previous, play or pause, mute, volume")
+keys.note("Brightness keys", "Display: Raise or lower brightness")
+keys.note("Calculator key", "Quickshell: Open calculator")
+
 -- Optional machine-specific keys outside the synced folders.
 local localKeys = os.getenv("HOME") .. "/.config/dotfiles-local/hypr-keybindings.lua"
 local localFile = io.open(localKeys, "r")
@@ -121,3 +141,6 @@ if localFile then
   localFile:close()
   dofile(localKeys)
 end
+
+-- The list for the settings window (see keys.lua)
+keys.export()

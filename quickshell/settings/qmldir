@@ -8,6 +8,7 @@ SettingField 1.0 SettingField.qml
 SettingStepper 1.0 SettingStepper.qml
 SettingChips 1.0 SettingChips.qml
 MapEditor 1.0 MapEditor.qml
+KeyCapture 1.0 KeyCapture.qml
 SystemPage 1.0 SystemPage.qml
 SyncPage 1.0 SyncPage.qml
 Seal 1.0 Seal.qml

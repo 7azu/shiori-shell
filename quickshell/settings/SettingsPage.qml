@@ -130,7 +130,7 @@ Item {
             }
 
             Repeater {
-                model: page.section.groups || []
+                model: SettingsState.groupsOf(page.section)
 
                 IosGroup {
                     id: group

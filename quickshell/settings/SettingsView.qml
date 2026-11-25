@@ -8,6 +8,7 @@ import QtQuick
 // Typing always lands in the search field.
 // Folder rows open the folder browser of the editors (windows/MediaBrowser, chooseFolder) over the page:
 // SettingsState.browseKey names the row, all keys then go to the browser until it reports a folder or Esc.
+// A shortcut row that waits for its keys (Keybinds.captureId) gets every key press the same way.
 Item {
     id: view
 
@@ -157,6 +158,31 @@ Item {
         onDismissed: view.closeBrowser()
         // After a vault's password field: keys back to the browser
         onWantsKeys: browseKeys.forceActiveFocus()
+    }
+
+    // A shortcut row captures: every key goes to Keybinds, none to the search field or the page keys
+    Connections {
+        function onCaptureIdChanged() {
+            if (Keybinds.captureId !== "")
+                captureKeys.forceActiveFocus();
+            else if (SettingsState.browseKey === "")
+                rail.focusSearch();
+        }
+
+        target: Keybinds
+    }
+
+    Item {
+        id: captureKeys
+
+        Keys.onPressed: (event) => {
+            Keybinds.captureKey(event.key, event.modifiers, event.nativeScanCode);
+            event.accepted = true;
+        }
+        Keys.onReleased: (event) => {
+            Keybinds.keyReleased(event.modifiers);
+            event.accepted = true;
+        }
     }
 
     // The browser takes no keys itself (as in the editors): everything to handleKey

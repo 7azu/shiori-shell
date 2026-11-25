@@ -171,17 +171,24 @@ right in the picker.
 | `Super + 1 … 0` | Switch workspace |
 | `Super + Shift + 1 … 0` | Move window to workspace |
 
-Media, volume, brightness and calculator keys work as expected. All bindings are in
-`hypr/modules/keybindings.lua`. More shell actions (Wi-Fi, Bluetooth, airplane mode, moving the bar)
-can be bound with `hl.dsp.global("quickshell:<name>")`; the names are listed in `quickshell/shell.qml`.
+Media, volume, brightness and calculator keys work as expected.
+
+These are the defaults. The settings window has a page **Shortcuts**: click a shortcut and press the new
+keys, `Backspace` removes it, and the main modifier can be switched from Super to Alt for all of them. A
+shortcut that is already taken says by what and offers to replace it. Groups (`Super + 1 … 0`, focus and
+move keys) and the special keys follow the main modifier but are not changed one by one.
+
+All bindings are in `hypr/modules/keybindings.lua`. More shell actions (Wi-Fi, Bluetooth, airplane mode,
+moving the bar) can be bound with `hl.dsp.global("quickshell:<name>")`; the names are listed in
+`quickshell/shell.qml`. Put bindings of your own into `~/.config/shiori-shell/hypr.lua`.
 
 ## Configuration
 
 Your own settings live in `~/.config/shiori-shell/`, outside the repo, so `git pull` never touches them.
 
 The settings window (`Super + ,`, the gear in the bar or the gear in a dropdown) edits them for you: which
-bar icons and features are on, folders, sync entries, translation, your own app icons, the audio
-visualizer and the starry sky. Every change is saved at once and can be undone. It writes the same files
+bar icons and features are on, keyboard shortcuts, folders, sync entries, translation, your own app
+icons, the audio visualizer and the starry sky. Every change is saved at once and can be undone. It writes the same files
 described below, so editing them by hand keeps working.
 
 ### settings.json
@@ -208,6 +215,10 @@ and the XDG folders (`$PICTURES`, `$MUSIC`, `$DOCUMENTS`, `$DOWNLOAD`, `$VIDEOS`
 
 **`desktop`**: `"visualizer": false` turns the audio wave on workspace 1 off, `"stars"` is `"off"`, `"calm"`
 or `"animated"` for the sky in the power menu, lock screen and workspace overview.
+
+**`keys`**: your keyboard shortcuts, written by the Shortcuts page. `"mod": "ALT"` makes Alt the main
+modifier, `"binds": { "terminal": "SUPER + Return", "trash": "" }` gives one shortcut other keys or
+turns it off. The names are the first argument of each `keys.bind` in `hypr/modules/keybindings.lua`.
 
 **`folders`**: where wallpapers, screenshots, music, language material and notes are.
 - When you change `music`, change `music_directory` in `mpd/mpd.conf` to match.

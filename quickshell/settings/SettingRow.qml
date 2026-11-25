@@ -9,8 +9,10 @@ import Quickshell
 // sentence on the left, the control on the right. The type picks the control:
 //   toggle, choice (segmented control up to four options, chips beyond), number, text, path (a text
 //   field plus a button that opens the folder browser, see SettingsView),
-//   info (read only), map (list of pairs, full width), link (search result that leads to a page).
-// Below the sentence: what is missing (a program that is not installed, a folder that does not exist).
+//   info (read only), map (list of pairs, full width), link (search result that leads to a page),
+//   key (a keybinding: KeyCapture, see services/Keybinds).
+// Below the sentence: what is missing (a program that is not installed, a folder that does not exist),
+// for a keybinding what it waits for or why the pressed keys were not taken.
 Item {
     id: rowItem
 
@@ -37,6 +39,8 @@ Item {
     readonly property var missing: SettingsState.missing(row)
     readonly property bool folderMissing: row.type === "path" && !!value && SettingsState.probe.paths[Settings.expand(value)] === false
     readonly property real pad: Theme.px(14)
+    // Keybinding: what the row has to say right now ({ text, tone }); null otherwise
+    readonly property var keyNote: row.type === "key" && row.key ? Keybinds.noteOf(SettingsState.nameOf(row.key)) : null
 
     function set(v) {
         SettingsState.apply(row.key, v, row.label);
@@ -127,6 +131,17 @@ Item {
                     font.pixelSize: Theme.sizeSmall
                 }
 
+                Text {
+                    width: parent.width
+                    visible: rowItem.keyNote !== null
+                    topPadding: Theme.px(2)
+                    text: rowItem.keyNote ? rowItem.keyNote.text : ""
+                    wrapMode: Text.WordWrap
+                    color: rowItem.keyNote && rowItem.keyNote.tone === "warn" ? Theme.warn : Theme.textDim
+                    font.family: Theme.fontUi
+                    font.pixelSize: Theme.sizeSmall
+                }
+
             }
 
             Loader {
@@ -150,6 +165,8 @@ Item {
                         return infoControl;
                     case "link":
                         return linkControl;
+                    case "key":
+                        return keyControl;
                     }
                     return null;
                 }
@@ -310,6 +327,15 @@ Item {
             color: Theme.textFaint
             font.family: Theme.font
             font.pixelSize: Theme.sizeLarge
+        }
+
+    }
+
+    Component {
+        id: keyControl
+
+        KeyCapture {
+            row: rowItem.row
         }
 
     }
