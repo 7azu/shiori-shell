@@ -7,6 +7,7 @@
 </p>
 
 <p align="center">
+  <a href="https://shiori-shell.7azu.workers.dev/">Website</a> ·
   <a href="#features">Features</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#keybindings">Keybindings</a> ·
