@@ -1,7 +1,7 @@
 import "../services"
 import QtQuick
 
-// Bar icon for the stats dropdown (CPU, GPU, RAM, SSD).
+// Bar icon for the stats dropdown (CPU, GPU, RAM, drives).
 // Other symbols to choose from: 󰘚 chip (CPU), 󰍛 memory (RAM), 󰔻 gauge
 BarIcon {
     id: root

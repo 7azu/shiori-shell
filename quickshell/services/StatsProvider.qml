@@ -24,13 +24,16 @@ Singleton {
     property string gpuVendor: ""
     property string gpuName: ""
     readonly property bool hasGpu: gpuKind !== "none"
-    property real diskPercent: 0
-    property string diskText: "--"
+    // Every physical drive, system drive first (scripts/disk_stats.py):
+    // [{ name, label, kind: "NVMe"|"SSD"|"HDD"|"USB"|..., model, size, mounted, used, total, percent, temp, system }]
+    // Sizes in bytes; mounted false = nothing of the drive is mounted, then only size is known.
+    property var disks: []
     // Counters of the last CPU measurement (usage = difference between two measurements)
     property real prevIdle: 0
     property real prevTotal: 0
     property bool firstCpuReading: true
     readonly property string sysScript: Qt.resolvedUrl("../scripts/system_stats.py").toString().replace("file://", "")
+    readonly property string diskScript: Qt.resolvedUrl("../scripts/disk_stats.py").toString().replace("file://", "")
 
     function sample() {
         meminfo.reload();
@@ -77,7 +80,7 @@ Singleton {
             // One more measurement right away: the CPU display needs two, otherwise it shows 0 % for 2 s
             // after the first opening
             quickSample.restart();
-            dfProcess.running = true;
+            diskProcess.running = true;
         }
     }
 
@@ -112,32 +115,31 @@ Singleton {
         onTriggered: root.sample()
     }
 
-    // Disk usage changes slowly: when opening and then once per minute
+    // Disk usage changes slowly: when opening and then once per minute. A drive that is plugged in or
+    // mounted meanwhile shows up with the next round.
     Timer {
         interval: 60000
         running: root.watched
         repeat: true
-        onTriggered: dfProcess.running = true
+        onTriggered: diskProcess.running = true
     }
 
     Process {
-        id: dfProcess
+        id: diskProcess
 
-        command: ["df", "-h", "--output=size,used,pcent", "/"]
+        command: ["python3", root.diskScript]
 
         stdout: StdioCollector {
             onStreamFinished: {
-                const lines = text.trim().split("\n");
-                if (lines.length < 2)
-                    return ;
+                try {
+                    const list = JSON.parse(text).disks || [];
+                    // Same values = same list: the dropdown does not rebuild its rows every minute
+                    if (JSON.stringify(list) !== JSON.stringify(root.disks))
+                        root.disks = list;
 
-                const parts = lines[1].trim().split(/\s+/);
-                if (parts.length < 3)
-                    return ;
-
-                const percent = parts[2].replace("%", "");
-                root.diskText = parts[1] + " / " + parts[0] + " (" + percent + "%)";
-                root.diskPercent = parseFloat(percent) || 0;
+                } catch (e) {
+                    console.warn("StatsProvider: could not read the drives:", e);
+                }
             }
         }
 
