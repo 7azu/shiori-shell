@@ -175,23 +175,50 @@ h2 { margin: 12px 0 16px; font-family: var(--serif); font-size: clamp(32px, 4.6v
 .card p { margin: 0; color: var(--muted); font-size: 15px; }
 .card .n { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--accent); letter-spacing: .12em; display: block; margin-bottom: 14px; }
 
-/* filmstrip: two rows of screenshots that pan in opposite directions as the page scrolls */
-.strips { width: 100vw; margin: 70px 0 0 calc(50% - 50vw); overflow: hidden; display: grid; gap: 16px; padding: 30px 0;
-  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent); }
-.gallery { display: flex; gap: 16px; width: max-content; will-change: transform; }
-.gallery button {
-  all: unset; cursor: zoom-in; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line);
-  position: relative; display: block; flex: none; width: clamp(280px, 36vw, 560px);
-  transition: border-color .3s, transform .5s cubic-bezier(.2, .7, .2, 1);
+/* gallery: one screenshot on a stage, its name and a sentence below it, the others as a strip of thumbs.
+   The stage takes its glow and the page its colors from the screenshot that is shown. */
+.viewer { margin-top: 44px; outline: none; }
+.viewer .glow { transition: background-image .7s ease; }
+.viewer .shot { position: relative; aspect-ratio: 16 / 9; cursor: zoom-in; }
+.viewer .shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .7s ease; }
+.viewer .shot img.prev { opacity: 1; z-index: 1; transition: none; }
+.viewer .shot img.on { opacity: 1; z-index: 2; }
+.viewer:focus-visible .shot { outline: 2px solid var(--accent); outline-offset: 3px; }
+.viewer-bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; margin-top: 26px; }
+.cap strong { display: block; font-family: var(--serif); font-size: 28px; line-height: 1.15; letter-spacing: -.02em; font-weight: 380; }
+.cap span { display: block; margin-top: 6px; color: var(--muted); min-height: 1.65em; }
+.ctl { display: flex; align-items: center; gap: 10px; flex: none; }
+.ctl .count { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--accent); letter-spacing: .12em; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.ctl button {
+  all: unset; box-sizing: border-box; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line);
+  display: grid; place-items: center; cursor: pointer; color: var(--muted);
+  transition: border-color .3s, color .3s, transform .4s cubic-bezier(.2, .7, .2, 1);
 }
-.gallery button:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); transform: translateY(-6px); }
-.gallery img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; transition: transform .8s cubic-bezier(.2, .7, .2, 1); }
-.gallery button:hover img { transform: scale(1.06); }
-.gallery span {
-  position: absolute; left: 12px; bottom: 10px; font-family: var(--mono); font-size: 12px;
-  padding: 3px 9px; border-radius: 999px; background: rgba(0, 0, 0, .55); backdrop-filter: blur(6px);
+.ctl button:hover { color: var(--text); border-color: color-mix(in srgb, var(--accent) 60%, transparent); transform: translateY(-2px); }
+.ctl svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.thumbs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
+.thumbs button { all: unset; display: block; cursor: pointer; min-width: 0; }
+.thumbs img {
+  display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; border: 1px solid var(--line);
+  opacity: .45; filter: saturate(.6); transition: opacity .4s, filter .4s, border-color .4s, transform .5s cubic-bezier(.2, .7, .2, 1);
 }
-.gallery button:focus-visible, .btn:focus-visible, .copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.thumbs button:hover img { opacity: .85; filter: none; transform: translateY(-3px); }
+.thumbs button[aria-selected="true"] img { opacity: 1; filter: none; border-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+/* the line under the shown thumb fills while it waits for the next one; when it is full the stage moves on */
+.thumbs i { display: block; height: 2px; margin-top: 8px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.thumbs i::after { content: ""; display: block; height: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left; }
+.thumbs button[aria-selected="true"] i::after { animation: fill 6s linear forwards; }
+.viewer.hold .thumbs i::after, .viewer.away .thumbs i::after { animation-play-state: paused; }
+@keyframes fill { to { transform: scaleX(1); } }
+.thumbs span { display: block; margin-top: 8px; font: 11.5px var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .3s; }
+.thumbs button[aria-selected="true"] span, .thumbs button:hover span { color: var(--text); }
+@media (max-width: 860px) {
+  .viewer-bar { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .cap strong { font-size: 24px; }
+  .thumbs { grid-template-columns: repeat(8, 132px); overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .thumbs button { scroll-snap-align: center; }
+}
+.thumbs button:focus-visible, .ctl button:focus-visible, .btn:focus-visible, .copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 dialog { border: 0; padding: 0; background: transparent; max-width: min(1400px, 94vw); }
 dialog::backdrop { background: rgba(0, 0, 0, .82); backdrop-filter: blur(8px); }
 dialog img { border-radius: var(--radius); max-height: 90vh; width: auto; cursor: zoom-out; }
@@ -233,7 +260,8 @@ footer a:hover { color: var(--text); }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .blob, .caret, .video .play span, .video .shot img { animation: none; }
-  .strips { overflow-x: auto; mask-image: none; }
+  .thumbs button[aria-selected="true"] i::after { animation: none; transform: scaleX(1); }
+  .viewer .shot img { transition: none; }
   .reveal { opacity: 1; transform: none; transition: none; }
   :root { transition: none; }
 }
@@ -251,6 +279,7 @@ footer a:hover { color: var(--text); }
         <a href="#video">Video</a>
         <a href="#showcase">Showcase</a>
         <a href="#features">Features</a>
+        <a href="#gallery">Gallery</a>
         <a href="#keys">Keys</a>
         <a href="#install">Install</a>
         <a class="gh" href="https://github.com/7azu/shiori-shell">GitHub</a>
@@ -378,18 +407,33 @@ footer a:hover { color: var(--text); }
       <div class="card reveal" style="--d:.12s"><span class="n">06</span><h4>One installer</h4><p>Installs the packages, links the configs and backs up what was there before.</p></div>
     </div>
 
-    <div class="strips reveal" id="strips">
-      <div class="gallery" data-dir="1">
-        <button data-full="screenshots/launcher.jpg"><img loading="lazy" src="screenshots/launcher.jpg" alt="App launcher"><span>launcher</span></button>
-        <button data-full="screenshots/wallpaper-picker.jpg"><img loading="lazy" src="screenshots/wallpaper-picker.jpg" alt="Wallpaper picker"><span>wallpapers</span></button>
-        <button data-full="screenshots/music.jpg"><img loading="lazy" src="screenshots/music.jpg" alt="Music picker"><span>music</span></button>
-        <button data-full="screenshots/calendar.jpg"><img loading="lazy" src="screenshots/calendar.jpg" alt="Calendar"><span>calendar</span></button>
+  </section>
+
+  <section id="gallery" class="wrap">
+    <div class="kicker reveal">Gallery</div>
+    <h2 class="reveal">A closer look.</h2>
+    <div class="viewer reveal" id="viewer" tabindex="0" role="group" aria-roledescription="carousel" aria-label="Screenshots">
+      <div class="frame" data-palette>
+        <div class="glow"></div>
+        <div class="shot" title="Open in full size"><img class="on" src="screenshots/launcher.jpg" width="2560" height="1440" alt="App launcher"></div>
       </div>
-      <div class="gallery" data-dir="-1">
-        <button data-full="screenshots/language-choice.jpg"><img loading="lazy" src="screenshots/language-choice.jpg" alt="Language choice in the language tool"><span>language tool</span></button>
-        <button data-full="screenshots/bluetooth.jpg"><img loading="lazy" src="screenshots/bluetooth.jpg" alt="Bluetooth picker"><span>bluetooth</span></button>
-        <button data-full="screenshots/power-menu.jpg"><img loading="lazy" src="screenshots/power-menu.jpg" alt="Power menu"><span>power menu</span></button>
-        <button data-full="screenshots/desktop.jpg"><img loading="lazy" src="screenshots/desktop.jpg" alt="Desktop"><span>desktop</span></button>
+      <div class="viewer-bar">
+        <div class="cap" aria-live="polite"><strong id="cap-title">App launcher</strong><span id="cap-text">Opens with Super + Space. Type to filter, Tab moves on to music and wallpapers.</span></div>
+        <div class="ctl">
+          <span class="count" id="cap-count">01 / 08</span>
+          <button id="shot-prev" aria-label="Previous screenshot"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button id="shot-next" aria-label="Next screenshot"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+      </div>
+      <div class="thumbs" role="tablist" aria-label="Choose a screenshot">
+        <button role="tab" aria-selected="true" tabindex="0" data-full="screenshots/launcher.jpg" data-title="App launcher" data-text="Opens with Super + Space. Type to filter, Tab moves on to music and wallpapers."><img loading="lazy" src="screenshots/launcher.jpg" alt=""><i></i><span>launcher</span></button>
+        <button role="tab" aria-selected="false" tabindex="-1" data-full="screenshots/wallpaper-picker.jpg" data-title="Wallpaper picker" data-text="Stills and animated wallpapers, with a search on wallhaven.cc. The desktop takes its colors from the one you pick."><img loading="lazy" src="screenshots/wallpaper-picker.jpg" alt=""><i></i><span>wallpapers</span></button>
+        <button role="tab" aria-selected="false" tabindex="-1" data-full="screenshots/music.jpg" data-title="Music picker" data-text="Your MPD library as a wall of covers."><img loading="lazy" src="screenshots/music.jpg" alt=""><i></i><span>music</span></button>
+        <button role="tab" aria-selected="false" tabindex="-1" data-full="screenshots/calendar.jpg" data-title="Calendar" data-text="The bar grows into a calendar with Super + K."><img loading="lazy" src="screenshots/calendar.jpg" alt=""><i></i><span>calendar</span></button>
+        <button role="tab" aria-selected="false" tabindex="-1" data-full="screenshots/language-choice.jpg" data-title="Language tool" data-text="Pick a language, then watch, read and keep track of your time."><img loading="lazy" src="screenshots/language-choice.jpg" alt=""><i></i><span>language tool</span></button>
+        <button role="tab" aria-selected="false" tabindex="-1" data-full="screenshots/bluetooth.jpg" data-title="Bluetooth" data-text="Devices orbit a black hole. The Wi-Fi picker works the same way."><img loading="lazy" src="screenshots/bluetooth.jpg" alt=""><i></i><span>bluetooth</span></button>
+        <button role="tab" aria-selected="false" tabindex="-1" data-full="screenshots/power-menu.jpg" data-title="Power menu" data-text="Shut down, restart, lock or log out, under a calm starry sky."><img loading="lazy" src="screenshots/power-menu.jpg" alt=""><i></i><span>power menu</span></button>
+        <button role="tab" aria-selected="false" tabindex="-1" data-full="screenshots/desktop.jpg" data-title="Desktop" data-text="Terminals, music and an audio visualizer, all in the colors of the wallpaper."><img loading="lazy" src="screenshots/desktop.jpg" alt=""><i></i><span>desktop</span></button>
       </div>
     </div>
   </section>
@@ -511,7 +555,7 @@ footer a:hover { color: var(--text); }
   });
 
   /* the frame closest to the middle of the screen sets the colors */
-  let current = null;
+  let current = null, shownColors = "";
   function pickCurrent() {
     const mid = innerHeight / 2;
     let best = null, dist = Infinity;
@@ -522,9 +566,11 @@ footer a:hover { color: var(--text); }
       const dd = Math.abs((r.top + r.bottom) / 2 - mid);
       if (dd < dist) { dist = dd; best = f; }
     }
-    if (best && best !== current) {
+    // also when the same frame shows another picture (the gallery)
+    if (best && (best !== current || palettes.get(best).join() !== shownColors)) {
       current = best;
       const [a, b] = palettes.get(best);
+      shownColors = a + "," + b;
       root.style.setProperty("--accent", a);
       root.style.setProperty("--accent2", b);
     }
@@ -537,20 +583,17 @@ footer a:hover { color: var(--text); }
   }, { passive: true });
   addEventListener("resize", pickCurrent);
 
-  /* motion: the hero unfolds from a tilted plane while scrolling, leans toward the pointer,
-     and the filmstrip pans sideways. Everything is eased in one loop, so nothing jumps. */
+  /* motion: the hero unfolds from a tilted plane while scrolling and leans toward the pointer.
+     Everything is eased in one loop, so nothing jumps. */
   const tilt = document.getElementById("tilt"), stage = tilt.parentElement;
-  const strips = document.getElementById("strips"), rows = [...strips.querySelectorAll(".gallery")];
   if (!reduced) {
     const fine = matchMedia("(pointer: fine)").matches;
     const c01 = v => Math.min(1, Math.max(0, v));
-    const cur = { h: 0, s: .5, x: 0, y: 0 }, tgt = { h: 0, s: .5, x: 0, y: 0 };
+    const cur = { h: 0, x: 0, y: 0 }, tgt = { h: 0, x: 0, y: 0 };
     let raf = 0, first = true;
     const measure = () => {
       const r = stage.getBoundingClientRect();
       tgt.h = c01(1 - (r.top - innerHeight * .12) / (innerHeight * .7));
-      const g = strips.getBoundingClientRect();
-      tgt.s = c01((innerHeight - g.top) / (innerHeight + g.height));
     };
     const draw = () => {
       const k = first ? 1 : .09; first = false;
@@ -560,11 +603,6 @@ footer a:hover { color: var(--text); }
       tilt.style.transform =
         `translateY(${(open * -30).toFixed(2)}px) scale(${(.86 + .14 * e).toFixed(4)}) ` +
         `rotateX(${(open * 26 - cur.y * 4 * e).toFixed(3)}deg) rotateY(${(cur.x * 6 * e).toFixed(3)}deg)`;
-      for (const row of rows) {
-        const span = Math.max(0, row.scrollWidth - innerWidth + 80);
-        const t = row.dataset.dir === "1" ? cur.s : 1 - cur.s;
-        row.style.transform = `translate3d(${(40 - t * span).toFixed(1)}px, 0, 0)`;
-      }
       raf = rest > .0008 ? requestAnimationFrame(draw) : 0;
     };
     const kick = () => { measure(); if (!raf) raf = requestAnimationFrame(draw); };
@@ -584,11 +622,66 @@ footer a:hover { color: var(--text); }
     c.style.setProperty("--my", `${e.clientY - r.top}px`);
   }));
 
+  /* gallery: the thumbs choose the screenshot on the stage. It moves on by itself when the line under the
+     shown thumb is full (a CSS animation, paused while the pointer or the keyboard is in the gallery
+     or it is out of view), so there is no timer to keep in step. */
+  const viewer = document.getElementById("viewer"), vFrame = viewer.querySelector(".frame"), vShot = viewer.querySelector(".shot");
+  const thumbs = viewer.querySelector(".thumbs"), tabs = [...thumbs.querySelectorAll("button")];
+  const layers = tabs.map((t, i) => {
+    if (i === 0) return vShot.querySelector("img");
+    const im = new Image(); im.alt = ""; vShot.append(im); return im;
+  });
+  const capTitle = document.getElementById("cap-title"), capText = document.getElementById("cap-text"), capCount = document.getElementById("cap-count");
+  const two = n => String(n).padStart(2, "0");
+  let at = 0, wanted = 0;
+  function show(i, byUser) {
+    i = (i + tabs.length) % tabs.length;
+    if (i === at) return;
+    const tab = tabs[i], im = layers[i], mine = ++wanted;
+    tabs.forEach((b, k) => { b.setAttribute("aria-selected", k === i); b.tabIndex = k === i ? 0 : -1; });
+    capTitle.textContent = tab.dataset.title; capText.textContent = tab.dataset.text;
+    capCount.textContent = `${two(i + 1)} / ${two(tabs.length)}`;
+    // narrow screens: keep the shown thumb in the middle of the strip (never scrolls the page)
+    if (thumbs.scrollWidth > thumbs.clientWidth)
+      thumbs.scrollTo({ left: tab.offsetLeft - thumbs.offsetLeft - (thumbs.clientWidth - tab.offsetWidth) / 2, behavior: reduced ? "auto" : "smooth" });
+    if (byUser && document.activeElement && tabs.includes(document.activeElement)) tab.focus({ preventScroll: true });
+    const before = at;
+    at = i;
+    if (!im.getAttribute("src")) im.src = tab.dataset.full;
+    const swap = () => {
+      if (mine !== wanted) return;
+      layers.forEach((l, k) => l.className = k === i ? "on" : k === before ? "prev" : "");
+      im.alt = tab.dataset.title;
+      vFrame.querySelector(".glow").style.backgroundImage = `url("${tab.dataset.full}")`;
+      const p = palette(im);
+      if (p) { palettes.set(vFrame, p); pickCurrent(); }
+      // have the next one ready
+      const n = (i + 1) % tabs.length;
+      if (!layers[n].getAttribute("src")) layers[n].src = tabs[n].dataset.full;
+    };
+    im.complete && im.naturalWidth ? swap() : im.addEventListener("load", swap, { once: true });
+  }
+  tabs.forEach((b, k) => b.addEventListener("click", () => show(k, true)));
+  document.getElementById("shot-prev").addEventListener("click", () => show(at - 1, true));
+  document.getElementById("shot-next").addEventListener("click", () => show(at + 1, true));
+  thumbs.addEventListener("animationend", e => { if (e.animationName === "fill") show(at + 1); });
+  viewer.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") show(at + 1, true);
+    else if (e.key === "ArrowLeft") show(at - 1, true);
+    else if ((e.key === "Enter" || e.key === " ") && e.target === viewer) vShot.click();
+    else return;
+    e.preventDefault();
+  });
+  const hold = () => viewer.classList.toggle("hold", viewer.matches(":hover") || viewer.contains(document.activeElement));
+  ["pointerenter", "pointerleave", "focusin", "focusout"].forEach(ev => viewer.addEventListener(ev, () => requestAnimationFrame(hold)));
+  viewer.classList.add("away");
+  new IntersectionObserver(es => viewer.classList.toggle("away", !es[0].isIntersecting), { threshold: .35 }).observe(viewer);
+
   /* lightbox */
   const box = document.getElementById("lightbox"), big = box.querySelector("img");
-  document.querySelectorAll(".gallery button").forEach(b => b.addEventListener("click", () => {
-    big.src = b.dataset.full; big.alt = b.querySelector("img").alt; box.showModal();
-  }));
+  vShot.addEventListener("click", () => {
+    big.src = tabs[at].dataset.full; big.alt = tabs[at].dataset.title; box.showModal();
+  });
   box.addEventListener("click", () => box.close());
 
   /* video: swap the poster for the player on demand */
