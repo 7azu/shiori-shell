@@ -1,40 +1,47 @@
 import "../common"
 import "../services"
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 
 // Settings of the shell: a card in the middle of the screen over a dimmed, blurred background, like
-// the pickers and the calculator (layer "quickshell:settings", blur rule in hypr/modules/windows.lua).
+// the pickers and the calculator. Two layer surfaces: the backdrop (dimming + Hyprland blur, layer
+// "quickshell:settings" on Top, blur rule in hypr/modules/windows.lua) and above it this window with
+// the card ("quickshell:settings-card" on Overlay, no Hyprland animation). On closing the backdrop
+// (common/ModalBackdrop) goes at once while the card evaporates (common/Evaporate).
 // Opened by Super + , (toggle_settings), the gear in the bar (bar/SettingsButton), the gear in a
 // dropdown header and `qs ipc call settings open <page>`; state and the description of the pages:
 // services/SettingsState. A click next to the card closes it.
-// The content only exists while the window is open.
+// The content only exists while the window is open (and during the closing).
 PanelWindow {
     id: win
 
     // 0 -> 1 while opening
     property real reveal: 0
-
+    // Spring scale on top of reveal (same pop as the pickers), overshoots briefly
+    property real pop: 1
     screen: anchor.screen
-    visible: SettingsState.open && anchor.here
+    visible: ev.held && anchor.here
     anchors.top: true
     anchors.bottom: true
     anchors.left: true
     anchors.right: true
     color: "transparent"
-    WlrLayershell.namespace: "quickshell:settings"
+    WlrLayershell.namespace: "quickshell:settings-card"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.exclusiveZone: -1
-    WlrLayershell.keyboardFocus: visible && anchor.focused ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: visible && anchor.focused && !ev.closing ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     onVisibleChanged: {
         opening.stop();
         if (visible) {
             // Do not pop up again on a workspace change; only on a real opening
-            if (anchor.isReturn())
+            if (anchor.isReturn()) {
                 reveal = 1;
-            else
+                pop = 1;
+            } else {
                 opening.restart();
+            }
         } else {
             reveal = 0;
         }
@@ -55,29 +62,50 @@ PanelWindow {
         onClosedWhileAway: SettingsState.open = true
     }
 
-    NumberAnimation {
-        id: opening
+    Evaporate {
+        id: ev
 
-        target: win
-        property: "reveal"
-        from: 0
-        to: 1
-        duration: Appearance.anim.durations.slow
-        easing.type: Easing.BezierSpline
-        easing.bezierCurve: Appearance.anim.curves.outQuint
+        window: win
+        open: SettingsState.open
+        // Opened again during the closing: play the opening from here
+        onReopened: opening.restart()
     }
 
-    // As in the pickers: alpha via ignore_alpha on the whole screen, so Hyprland blurs the background
-    // outside the card too
-    Rectangle {
-        anchors.fill: parent
-        color: WalColors.withAlpha(WalColors.color0, 0.4)
+    ParallelAnimation {
+        id: opening
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: SettingsState.close()
+        NumberAnimation {
+            target: win
+            property: "reveal"
+            from: 0
+            to: 1
+            duration: Appearance.anim.durations.slow
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Appearance.anim.curves.outQuint
         }
 
+        NumberAnimation {
+            target: win
+            property: "pop"
+            from: 0.88
+            to: 1
+            duration: Appearance.anim.durations.spring
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Appearance.anim.curves.spring
+        }
+
+    }
+
+    // Clicks only on the card; next to it they go through to the backdrop (which closes)
+    mask: Region {
+        item: card
+    }
+
+    ModalBackdrop {
+        screen: anchor.screen
+        name: "quickshell:settings"
+        shown: SettingsState.open && anchor.here
+        onClicked: SettingsState.close()
     }
 
     Item {
@@ -87,8 +115,18 @@ PanelWindow {
         anchors.verticalCenterOffset: Theme.px(20) * (1 - win.reveal)
         width: Math.min(Theme.px(1060), parent.width - Theme.px(48))
         height: Math.min(Theme.px(720), parent.height - Theme.px(96))
-        scale: 0.95 + 0.05 * win.reveal
-        opacity: win.reveal
+        scale: (0.95 + 0.05 * win.reveal) * win.pop * ev.scale
+        opacity: win.reveal * ev.opacity
+        // Blur only while closing (costs nothing while open)
+        layer.enabled: ev.closing
+
+        layer.effect: MultiEffect {
+            autoPaddingEnabled: true
+            blurEnabled: true
+            blur: ev.blur
+            blurMax: 64
+            blurMultiplier: 0.6
+        }
 
         // Clicks on the card do not reach the background (which closes)
         MouseArea {
@@ -99,11 +137,13 @@ PanelWindow {
         RoundedClip {
             anchors.fill: parent
             radius: Theme.radiusXL
-            color: WalColors.withAlpha(WalColors.color0, 0.92)
+            // Opaque: the blurred desktop behind the card stays around it, not in it
+            color: WalColors.color0
 
             Loader {
                 anchors.fill: parent
-                active: SettingsState.open
+                active: ev.held
+                enabled: !ev.closing
                 focus: true
 
                 sourceComponent: SettingsView {

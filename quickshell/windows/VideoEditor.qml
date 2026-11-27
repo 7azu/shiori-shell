@@ -345,16 +345,18 @@ PanelWindow {
     // other screen would not be usable (e.g. browser extensions)
     screen: anchor.screen
     // Leave it mapped on foreign workspaces (transparent, click-through): see common/WorkspaceSlide
-    visible: st.isOpen
+    // Card surface ("-card", no Hyprland animation); dimming + blur in the backdrop below, so on
+    // closing the card evaporates while the backdrop fades (common/ModalBackdrop, common/Evaporate)
+    visible: ev.held
     mask: anchor.here ? null : passThrough
     color: "transparent"
     anchors.top: true
     anchors.bottom: true
     anchors.left: true
     anchors.right: true
-    WlrLayershell.namespace: "quickshell:video-editor"
+    WlrLayershell.namespace: "quickshell:video-editor-card"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: st.isOpen && anchor.here && anchor.focused ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: st.isOpen && !ev.closing && anchor.here && anchor.focused ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     WlrLayershell.exclusiveZone: -1
 
     Connections {
@@ -531,6 +533,23 @@ PanelWindow {
         id: intro
     }
 
+    Evaporate {
+        id: ev
+
+        window: win
+        open: win.st.isOpen
+    }
+
+    // Stays mapped on foreign workspaces like the editor itself (transparent there), glides along
+    ModalBackdrop {
+        screen: anchor.screen
+        name: "quickshell:video-editor"
+        shown: win.st.isOpen
+        clickable: false
+        shift: wsSlide.shift
+        veilOpacity: wsSlide.hidden ? 0 : 1
+    }
+
     WindowAnchor {
         id: anchor
 
@@ -611,16 +630,6 @@ PanelWindow {
 
         interval: 4000
         onTriggered: win.confirmOverwrite = false
-    }
-
-    Rectangle {
-        anchors.fill: parent
-        opacity: wsSlide.hidden ? 0 : 1
-        transform: Translate {
-            x: wsSlide.shift
-        }
-        // As in the pickers: slightly tinted, so the blur (layer_rule in hypr/modules/windows.lua) works
-        color: WalColors.withAlpha(WalColors.color0, 0.4)
     }
 
     Item {
@@ -714,6 +723,30 @@ PanelWindow {
             event.accepted = true;
         }
 
+        // Copy of the card for the closing: the state empties the image/video right after isOpen goes
+        // false, so the card itself would evaporate empty. This copy follows the card while open
+        // (live, almost invisible so it keeps being drawn) and freezes in the same moment the closing
+        // starts (live is bound to it), so the last real frame evaporates (common/Evaporate).
+        ShaderEffectSource {
+            id: cardShot
+
+            anchors.fill: card
+            sourceItem: card
+            live: !ev.closing
+            hideSource: false
+            smooth: true
+            scale: ev.scale
+            opacity: ev.closing ? ev.opacity : 0.001
+            layer.enabled: ev.closing
+            layer.effect: MultiEffect {
+                autoPaddingEnabled: true
+                blurEnabled: true
+                blur: ev.blur
+                blurMax: 64
+                blurMultiplier: 0.6
+            }
+        }
+
         Rectangle {
             id: card
 
@@ -725,7 +758,9 @@ PanelWindow {
             anchors.centerIn: parent
             // Opening animation (common/OpenMotion)
             scale: intro.cardScale
-            opacity: intro.cardOpacity
+            // While closing the frozen copy (cardShot) evaporates in its place
+            opacity: ev.closing ? 0 : intro.cardOpacity
+            enabled: !ev.closing
             transform: Translate {
                 y: intro.rise
             }

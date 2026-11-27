@@ -48,10 +48,54 @@ Item {
         return it ? it.y : 0;
     }
 
+    // Opening: the rows fade in one after another (as in the clipboard). The view is built anew on
+    // every opening (Loader in SettingsWindow), so each row starts its own intro when created.
+    // Rows created later (search changes the list) appear without it.
+    property bool intro: true
+    // Selection pill + ribbon, they come in with their row
+    property real markIn: 1
+    readonly property int selIndex: items.findIndex((i) => {
+        return i.kind === "page" && i.sec.id === SettingsState.section;
+    })
+
     signal keyPressed(var event)
+
+    function introDelay(i) {
+        return Math.min(Math.max(0, i), 14) * 28 + 80;
+    }
 
     function focusSearch() {
         search.input.forceActiveFocus();
+    }
+
+    Component.onCompleted: {
+        markIn = 0;
+        markEnter.start();
+    }
+
+    Timer {
+        // Longer than the last row (14 * 28 + 80 + 460)
+        interval: 1000
+        running: true
+        onTriggered: rail.intro = false
+    }
+
+    SequentialAnimation {
+        id: markEnter
+
+        PauseAnimation {
+            duration: rail.introDelay(rail.selIndex)
+        }
+
+        NumberAnimation {
+            target: rail
+            property: "markIn"
+            to: 1
+            duration: 460
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Appearance.anim.curves.outQuint
+        }
+
     }
 
     Rectangle {
@@ -138,88 +182,101 @@ Item {
         width: rail.width
         height: rail.items.length > 0 ? rail.items[rail.items.length - 1].y + rail.rowH : 0
 
-        // Selection: the pill of all pickers ...
-        Rectangle {
-            x: rail.pad - Theme.px(6)
-            y: rail.selY + Theme.px(2)
-            width: rail.width - 2 * rail.pad + Theme.px(12)
-            height: rail.rowH - Theme.px(4)
-            radius: Theme.px(12)
-            color: Theme.tint(Theme.accent, 0.13)
-            opacity: rail.searching ? 0 : 1
+        // Pill and ribbon in one layer: the intro fades/lifts them with their row, while their own
+        // Behaviors (y, opacity) keep working undisturbed
+        Item {
+            width: list.width
+            height: list.height
+            opacity: rail.markIn
 
-            Behavior on y {
-                Springy {
+            transform: Translate {
+                y: (1 - rail.markIn) * 12
+            }
+
+            // Selection: the pill of all pickers ...
+            Rectangle {
+                x: rail.pad - Theme.px(6)
+                y: rail.selY + Theme.px(2)
+                width: rail.width - 2 * rail.pad + Theme.px(12)
+                height: rail.rowH - Theme.px(4)
+                radius: Theme.px(12)
+                color: Theme.tint(Theme.accent, 0.13)
+                opacity: rail.searching ? 0 : 1
+
+                Behavior on y {
+                    Springy {
+                    }
+
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Appearance.anim.durations.fast
+                    }
+
                 }
 
             }
 
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Appearance.anim.durations.fast
+            // ... and the bookmark ribbon, cut in at its lower end
+            Shape {
+                id: ribbon
+
+                readonly property real w: Theme.px(7)
+                readonly property real h: Theme.px(15)
+
+                x: rail.pad + Theme.px(4)
+                y: rail.selY + Math.round((rail.rowH - h) / 2)
+                width: w
+                height: h
+                opacity: rail.searching ? 0 : 1
+                preferredRendererType: Shape.CurveRenderer
+
+                ShapePath {
+                    strokeWidth: 0
+                    strokeColor: "transparent"
+                    fillColor: Theme.accent
+                    startX: 0
+                    startY: 0
+
+                    PathLine {
+                        x: ribbon.w
+                        y: 0
+                    }
+
+                    PathLine {
+                        x: ribbon.w
+                        y: ribbon.h
+                    }
+
+                    PathLine {
+                        x: ribbon.w / 2
+                        y: ribbon.h - ribbon.w * 0.55
+                    }
+
+                    PathLine {
+                        x: 0
+                        y: ribbon.h
+                    }
+
+                    PathLine {
+                        x: 0
+                        y: 0
+                    }
+
                 }
 
-            }
+                Behavior on y {
+                    Springy {
+                    }
 
-        }
-
-        // ... and the bookmark ribbon, cut in at its lower end
-        Shape {
-            id: ribbon
-
-            readonly property real w: Theme.px(7)
-            readonly property real h: Theme.px(15)
-
-            x: rail.pad + Theme.px(4)
-            y: rail.selY + Math.round((rail.rowH - h) / 2)
-            width: w
-            height: h
-            opacity: rail.searching ? 0 : 1
-            preferredRendererType: Shape.CurveRenderer
-
-            ShapePath {
-                strokeWidth: 0
-                strokeColor: "transparent"
-                fillColor: Theme.accent
-                startX: 0
-                startY: 0
-
-                PathLine {
-                    x: ribbon.w
-                    y: 0
                 }
 
-                PathLine {
-                    x: ribbon.w
-                    y: ribbon.h
-                }
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Appearance.anim.durations.fast
+                    }
 
-                PathLine {
-                    x: ribbon.w / 2
-                    y: ribbon.h - ribbon.w * 0.55
-                }
-
-                PathLine {
-                    x: 0
-                    y: ribbon.h
-                }
-
-                PathLine {
-                    x: 0
-                    y: 0
-                }
-
-            }
-
-            Behavior on y {
-                Springy {
-                }
-
-            }
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Appearance.anim.durations.fast
                 }
 
             }
@@ -233,12 +290,43 @@ Item {
                 id: entry
 
                 required property var modelData
+                required property int index
                 readonly property bool isPage: modelData.kind === "page"
                 readonly property bool selected: isPage && !rail.searching && modelData.sec.id === SettingsState.section
+                property real enter: 1
 
                 y: modelData.y
                 width: list.width
                 height: isPage ? rail.rowH : rail.groupH
+                opacity: enter
+                Component.onCompleted: {
+                    if (rail.intro) {
+                        enter = 0;
+                        entryEnter.start();
+                    }
+                }
+
+                transform: Translate {
+                    y: (1 - entry.enter) * 12
+                }
+
+                SequentialAnimation {
+                    id: entryEnter
+
+                    PauseAnimation {
+                        duration: rail.introDelay(entry.index)
+                    }
+
+                    NumberAnimation {
+                        target: entry
+                        property: "enter"
+                        to: 1
+                        duration: 460
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Appearance.anim.curves.outQuint
+                    }
+
+                }
 
                 // Group: number, title, a hairline to the edge
                 Item {

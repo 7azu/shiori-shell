@@ -16,15 +16,50 @@ Item {
     readonly property real pad: Theme.px(40)
     readonly property real colW: Math.min(width - 2 * pad, Theme.px(720))
 
+    // Intro clock in ms (on opening and on every page change). One clock instead of many animations:
+    // every part takes its own slice (delay, length) of it, so a restart while running is clean.
+    // The rail falls in from above; here the page comes in from the side, in layers: head lines glide
+    // in from the right one after another, the seal follows slower (depth), then the groups rise.
+    property real clock: 2000
+
     function toTop() {
         flick.contentY = 0;
     }
 
+    function playIntro(startDelay) {
+        intro.stop();
+        intro.from = -(startDelay || 0);
+        intro.start();
+    }
+
+    // Progress 0..1 of a part (ease out quint, as Appearance.anim.curves.outQuint)
+    function k(delay, length) {
+        const x = Math.max(0, Math.min(1, (clock - delay) / length));
+        return 1 - Math.pow(1 - x, 5);
+    }
+
+    // Delay of group i (after the head)
+    function groupDelay(i) {
+        return 170 + Math.min(Math.max(0, i), 6) * 55;
+    }
+
+    NumberAnimation {
+        id: intro
+
+        target: page
+        property: "clock"
+        to: 1100
+        duration: 1100 - intro.from
+    }
+
     // Seal of the page, large and barely there, next to the head (it must not reach into the rows)
     Text {
+        readonly property real e: page.k(40, 900)
+
         anchors.right: parent.right
-        anchors.rightMargin: Theme.px(34)
+        anchors.rightMargin: Theme.px(34) - Theme.px(46) * (1 - e)
         anchors.verticalCenter: head.verticalCenter
+        opacity: e
         text: page.section.seal
         color: Theme.tint(Theme.text, 0.05)
         font.family: Theme.fontDisplay
@@ -41,7 +76,16 @@ Item {
         spacing: Theme.px(7)
 
         Row {
+            id: label
+
+            readonly property real e: page.k(0, 520)
+
             spacing: Theme.px(14)
+            opacity: e
+
+            transform: Translate {
+                x: Theme.px(26) * (1 - label.e)
+            }
 
             Text {
                 text: page.searching ? "SEARCH" : "0" + (page.section.group + 1) + "   " + SettingsState.groups[page.section.group].toUpperCase()
@@ -83,15 +127,30 @@ Item {
         }
 
         Text {
+            id: title
+
+            readonly property real e: page.k(50, 560)
+
             width: parent.width
             text: page.section.name
             elide: Text.ElideRight
             color: Theme.text
             font.family: Theme.fontDisplay
             font.pixelSize: Theme.px(34)
+            opacity: e
+
+            transform: Translate {
+                x: Theme.px(26) * (1 - title.e)
+            }
+
         }
 
         Text {
+            id: blurb
+
+            readonly property real e: page.k(100, 560)
+
+            opacity: e
             width: parent.width
             text: page.section.blurb
             wrapMode: Text.WordWrap
@@ -99,6 +158,11 @@ Item {
             font.family: Theme.fontUi
             font.pixelSize: Theme.sizeLead
             lineHeight: 1.2
+
+            transform: Translate {
+                x: Theme.px(26) * (1 - blurb.e)
+            }
+
         }
 
     }
@@ -123,9 +187,18 @@ Item {
             spacing: Theme.px(22)
 
             Loader {
+                id: custom
+
+                readonly property real e: page.k(page.groupDelay(0), 600)
+
                 width: body.width
                 active: !!page.section.page
                 visible: active
+                opacity: e
+                transform: Translate {
+                    y: Theme.px(18) * (1 - custom.e)
+                }
+
                 source: page.section.page === "system" ? "SystemPage.qml" : (page.section.page === "sync" ? "SyncPage.qml" : "")
             }
 
@@ -136,12 +209,20 @@ Item {
                     id: group
 
                     required property var modelData
+                    required property int index
                     readonly property var rows: modelData.rows.filter((r) => {
                         return page.searching || SettingsState.shownRow(r);
                     })
+                    // A custom page (Loader above) takes the first slot
+                    readonly property real e: page.k(page.groupDelay(index + (page.section.page ? 1 : 0)), 600)
 
                     width: body.width
                     visible: rows.length > 0
+                    opacity: e
+                    transform: Translate {
+                        y: Theme.px(18) * (1 - group.e)
+                    }
+
                     title: modelData.title
                     footer: modelData.footer || ""
                     // Search: the group is a page, the action leads there

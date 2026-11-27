@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
@@ -11,16 +12,19 @@ PanelWindow {
     property bool showHistory: false
     property real reveal: 0
     screen: anchor.screen
-    visible: st.isOpen && anchor.here
+    // Card on its own surface ("-card", no Hyprland animation); dimming + blur in the backdrop below,
+    // so on closing both leave together (common/ModalBackdrop, common/Evaporate)
+    visible: ev.held && anchor.here
     anchors.top: true
     anchors.bottom: true
     anchors.left: true
     anchors.right: true
     color: "transparent"
-    WlrLayershell.namespace: "quickshell:calculator"
+    WlrLayershell.namespace: "quickshell:calculator-card"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.exclusiveZone: -1
-    WlrLayershell.keyboardFocus: visible && anchor.focused ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: visible && anchor.focused && !ev.closing ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    mask: Region { item: surface }
     WindowAnchor {
         id: anchor
         open: st.isOpen
@@ -38,6 +42,16 @@ PanelWindow {
         }
     }
 
+    Evaporate {
+        id: ev
+        window: win
+        open: st.isOpen
+        onReopened: {
+            opening.restart();
+            surface.forceActiveFocus();
+        }
+    }
+
     NumberAnimation {
         id: opening
         target: win
@@ -49,23 +63,28 @@ PanelWindow {
         easing.bezierCurve: Appearance.anim.curves.outQuint
     }
 
-    // As in the pickers: alpha via ignore_alpha on the whole screen,
-    // so Hyprland blurs the background outside the calculator card too.
-    Rectangle {
-        anchors.fill: parent
-        color: WalColors.withAlpha(WalColors.color0, 0.4)
-        MouseArea {
-            anchors.fill: parent
-            onClicked: st.close()
-        }
+    ModalBackdrop {
+        screen: anchor.screen
+        name: "quickshell:calculator"
+        shown: st.isOpen && anchor.here
+        onClicked: st.close()
     }
 
     Rectangle {
         id: surface
         anchors.centerIn: parent
         anchors.verticalCenterOffset: Theme.px(24) * (1 - win.reveal)
-        scale: 0.92 + 0.08 * win.reveal
-        opacity: win.reveal
+        scale: (0.92 + 0.08 * win.reveal) * ev.scale
+        opacity: win.reveal * ev.opacity
+        enabled: !ev.closing
+        layer.enabled: ev.closing
+        layer.effect: MultiEffect {
+            autoPaddingEnabled: true
+            blurEnabled: true
+            blur: ev.blur
+            blurMax: 64
+            blurMultiplier: 0.6
+        }
         width: Math.min(Theme.px(360), parent.width - Theme.px(32))
         height: Math.min(Theme.px(580), parent.height - Theme.px(32))
         radius: Theme.radiusXL

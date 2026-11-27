@@ -174,6 +174,15 @@ for _, l in ipairs(blurred_layers) do
   })
 end
 
+-- Cards of the modal windows ("quickshell:<name>-card": settings, calculator, pickers ...) play their
+-- own opening and closing (quickshell/common/Evaporate.qml); their backdrop is the blurred namespace
+-- above on a lower layer (quickshell/common/ModalBackdrop.qml).
+hl.layer_rule({
+  name    = "modal-cards",
+  match   = { namespace = "quickshell:.*-card" },
+  no_anim = true,
+})
+
 -- Quickshell owns the backdrop fade and keeps this surface mapped through a workspace switch.
 hl.layer_rule({
   name      = "workspaceoverview",

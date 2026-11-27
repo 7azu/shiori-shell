@@ -1,6 +1,7 @@
 import "../common"
 import "../services"
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
@@ -9,15 +10,10 @@ PanelWindow {
     id: pickerWindow
 
     readonly property bool isAnyOpen: PickerManager.anyOpen
-    // Closing animation in two phases:
-    // 1) only the picker content plays its outro, the dimming stays -> the whole screen stays
-    //    evenly blurred (otherwise a hard-edged blur rectangle appears behind the panel)
-    // 2) the window is hidden; Hyprland then fades out dimming AND blur together softly
-    //    (layer_rule "pickers-blur" with animation = "fade" in ~/.config/hypr/modules/windows.lua)
-    readonly property int closeDuration: 200
-    // true = clipboard/task manager/media/language play their panel outro before the Hyprland fade
-    // (panel glides down); false = everything fades together (feels more natural, no time offset)
-    readonly property bool panelOutro: false
+    // Two surfaces like all modal windows: this one with the pickers ("quickshell:pickers-card", no
+    // Hyprland animation) and below it the backdrop with dimming + blur (common/ModalBackdrop,
+    // "quickshell:pickers"). Closing: the backdrop goes at once (Hyprland fades it) while the picker
+    // content evaporates (common/Evaporate: grows a little, blurs, fades); then this window goes.
     property bool closing: false
     property string lastPicker: ""
     // Media picker player morph: hold the screen while a player is starting / running
@@ -55,27 +51,12 @@ PanelWindow {
         return PickerManager.closingPicker === name;
     }
 
+    // The picker stays shown (closingPicker) while it evaporates; the pickers' own playOutro is not
+    // used any more, so every picker closes the same way
     function startClose() {
-        const slot = slotFor(lastPicker);
-        const item = slot ? slot.item : null;
-        // Default: window gone right away. Hyprland keeps the last frame (content still fully visible)
-        // and fades content, dimming and blur out TOGETHER in one go.
-        // (A panel outro of its own before that felt offset: first the panel gone, then the blur.)
-        if (!panelOutro || PickerManager.tabPickers.indexOf(lastPicker) !== -1) {
-            PickerManager.closingPicker = "";
-            return ;
-        }
         closing = true;
         PickerManager.closingPicker = lastPicker;
-        // + buffer: only hide when the last frame (panel invisible) is surely drawn,
-        // otherwise Hyprland holds a frame with a half visible panel during the fade (ghost image)
-        closeTimer.interval = closeDuration + 60;
-        closeTimer.restart();
-        // Pickers with their own outro (clipboard, apps, media, language) play it, all others shrink softly
-        if (item && typeof item.playOutro === "function")
-            item.playOutro();
-        else
-            closeShrink.restart();
+        ev.play();
     }
 
     function cancelClose() {
@@ -83,8 +64,7 @@ PanelWindow {
         if (!closing)
             return ;
 
-        closeTimer.stop();
-        closeShrink.stop();
+        ev.stop();
         closing = false;
         resetCloseState();
         freshOpenBounce.restart();
@@ -98,7 +78,7 @@ PanelWindow {
     // (without the panel) when fading out
     function resetCloseState() {
         scaleWrapper.scale = 1;
-        crossfadeContainer.opacity = 1;
+        ev.stop();
     }
 
     function focusActivePicker() {
@@ -108,7 +88,7 @@ PanelWindow {
 
     }
 
-    WlrLayershell.namespace: "quickshell:pickers"
+    WlrLayershell.namespace: "quickshell:pickers-card"
     WlrLayershell.layer: WlrLayer.Overlay
     // While the media player runs: no keyboard focus (mpv gets all keys). Right after the player the
     // picker briefly takes the focus back exclusively.
@@ -163,6 +143,26 @@ PanelWindow {
                 PickerManager.open(pickerWindow.lastPicker);
 
         }
+    }
+
+    Evaporate {
+        id: ev
+
+        manual: true
+        onFinished: {
+            pickerWindow.closing = false;
+            PickerManager.closingPicker = "";
+        }
+    }
+
+    // Dimming + blur. The dimming follows the media player morph: gone when the player fills the
+    // surface, back when morphing back. Clicks go through to the pickers (they close themselves).
+    ModalBackdrop {
+        screen: pickerWindow.screen
+        name: "quickshell:pickers"
+        shown: pickerWindow.isAnyOpen && anchor.here
+        clickable: false
+        dim: WalColors.withAlpha(WalColors.color0, 0.4 * Math.max(0, Math.min(1, 1 - PickerManager.morph)))
     }
 
     // Black back surfaces for the player morph. Hyprland hides top layers behind a fullscreen window,
@@ -227,12 +227,10 @@ PanelWindow {
         asynchronous: true
     }
 
-    Rectangle {
+    Item {
         id: backgroundRect
 
         anchors.fill: parent
-        // The dimming follows the morph: gone when the player fills the surface, back when morphing back
-        color: WalColors.withAlpha(WalColors.color0, 0.4 * Math.max(0, Math.min(1, 1 - PickerManager.morph)))
         opacity: (pickerWindow.isAnyOpen || pickerWindow.closing) ? 1 : 0
 
         Item {
@@ -245,13 +243,17 @@ PanelWindow {
             SequentialAnimation {
                 id: freshOpenBounce
 
+                // Damped spring instead of OutBack: the picker panels grow themselves (0.95 -> 1, outQuint),
+                // which swallowed the short OutBack hop. The slower spring peaks after the panel has
+                // nearly arrived, so one calm ~0.8 % overshoot stays visible.
                 NumberAnimation {
                     target: scaleWrapper
                     property: "scale"
-                    from: 0.85
+                    from: 0.88
                     to: 1
-                    duration: Appearance.anim.durations.normal
-                    easing.type: Easing.OutBack
+                    duration: Appearance.anim.durations.spring
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Appearance.anim.curves.spring
                 }
 
             }
@@ -261,6 +263,18 @@ PanelWindow {
 
                 anchors.fill: parent
                 enabled: !pickerWindow.closing
+                scale: ev.scale
+                opacity: ev.opacity
+                // Blur only while evaporating
+                layer.enabled: ev.running
+
+                layer.effect: MultiEffect {
+                    autoPaddingEnabled: false
+                    blurEnabled: true
+                    blur: ev.blur
+                    blurMax: 64
+                    blurMultiplier: 0.6
+                }
 
                 // Every picker is a "slot": loads itself and unloads again.
                 // The switch animation is done by the picker itself (only its content, not the search bar).
@@ -454,39 +468,6 @@ PanelWindow {
                 easing.type: Easing.OutCubic
             }
 
-        }
-
-    }
-
-    // Phase 1 over -> hide the window (Hyprland takes over the fade incl. blur)
-    Timer {
-        id: closeTimer
-
-        interval: pickerWindow.closeDuration
-        onTriggered: {
-            pickerWindow.closing = false;
-            PickerManager.closingPicker = "";
-        }
-    }
-
-    // Generic outro for pickers without their own: shrink slightly and fade out
-    ParallelAnimation {
-        id: closeShrink
-
-        NumberAnimation {
-            target: scaleWrapper
-            property: "scale"
-            to: 0.96
-            duration: pickerWindow.closeDuration
-            easing.type: Easing.InCubic
-        }
-
-        NumberAnimation {
-            target: crossfadeContainer
-            property: "opacity"
-            to: 0
-            duration: pickerWindow.closeDuration
-            easing.type: Easing.InCubic
         }
 
     }

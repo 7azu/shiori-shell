@@ -14,7 +14,7 @@ Item {
 
     readonly property bool searching: SettingsState.query.trim() !== ""
     readonly property var shown: searching ? SettingsState.searchSection(SettingsState.query) : SettingsState.sectionById(SettingsState.section)
-    // Identity of what is shown, to restart the fade and scroll to the top only on a real change
+    // Identity of what is shown, to restart the page intro and scroll to the top only on a real change
     readonly property string shownId: searching ? "search" : SettingsState.section
 
     // Start where the row points now; a folder that is missing: the nearest one above that exists is not
@@ -59,9 +59,13 @@ Item {
 
     onShownIdChanged: {
         page.toTop();
-        fade.restart();
+        page.playIntro(0);
     }
-    Component.onCompleted: rail.focusSearch()
+    Component.onCompleted: {
+        rail.focusSearch();
+        // Opening: a little after the rail and the card pop, so the page lands last
+        page.playIntro(120);
+    }
     Keys.onPressed: (event) => {
         return view.handleKey(event);
     }
@@ -105,17 +109,6 @@ Item {
         anchors.bottom: footer.top
         section: view.shown
         clip: true
-    }
-
-    NumberAnimation {
-        id: fade
-
-        target: page
-        property: "opacity"
-        from: 0
-        to: 1
-        duration: Appearance.anim.durations.normal
-        easing.type: Easing.OutCubic
     }
 
     SettingsFooter {
