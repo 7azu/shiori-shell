@@ -23,6 +23,24 @@
     "until": "07:00",
     "temperature": 4000
   },
+  "windows": {
+    "gapsIn": 6,
+    "gapsOut": 15,
+    "borderSize": 1,
+    "rounding": 1,
+    "roundingPower": 3,
+    "activeBorder": "wal:color5",
+    "inactiveBorder": "wal:color0",
+    "activeOpacity": 90,
+    "inactiveOpacity": 78,
+    "shadow": true,
+    "shadowRange": 28,
+    "blur": true,
+    "blurSize": 7,
+    "blurPasses": 2,
+    "animations": true,
+    "animSpeed": 1
+  },
   "weather": {
     "enabled": true,
     "place": "",

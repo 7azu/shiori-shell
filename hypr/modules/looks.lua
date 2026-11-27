@@ -13,67 +13,30 @@
 -- ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 -- ┌────────────────────────────────────────────────────────────┐
--- │  PYWAL COLORS                                              │
--- └────────────────────────────────────────────────────────────┘
--- wal rewrites this file on every wallpaper change,
--- the wallpaper picker then runs `hyprctl reload`
--- Before the first wallpaper (fresh install) the file does not exist yet: the default palette of the
--- repo (wal/colorschemes/dark/shiori.json) instead of an error
-local ok, wal = pcall(dofile, os.getenv("HOME") .. "/.cache/wal/colors.lua")
-if not ok or type(wal) ~= "table" then
-  wal = {
-    background = "#16161e", foreground = "#c0caf5", cursor = "#c0caf5",
-    color0 = "#16161e", color1 = "#f7768e", color2 = "#9ece6a", color3 = "#e0af68",
-    color4 = "#7aa2f7", color5 = "#bb9af7", color6 = "#7dcfff", color7 = "#c0caf5",
-    color8 = "#414868", color9 = "#f7768e", color10 = "#9ece6a", color11 = "#e0af68",
-    color12 = "#7aa2f7", color13 = "#bb9af7", color14 = "#7dcfff", color15 = "#c0caf5",
-  }
-end
-
--- "#rrggbb" -> "rrggbb" for rgba() strings
-local function rgb(c) return (c:gsub("^#", "")) end
-
--- ┌────────────────────────────────────────────────────────────┐
 -- │  GAPS, BORDERS & DECORATION                                │
 -- └────────────────────────────────────────────────────────────┘
+-- Gaps, border size and colors, corners, opacity, shadow, blur: set on the "Windows" page of the
+-- settings window, see style.lua (pywal colors come from there too). Border + shadow colors fade live
+-- on a wallpaper switch: quickshell/services/HyprlandColorFade.qml sends every fade step via hyprctl eval.
+local style = require("style")
+hl.config(style.config())
+
+-- What the settings page does not change
 hl.config({
-  -- border + shadow colors fade live on a wallpaper switch: quickshell/services/HyprlandColorFade.qml
-  -- sends every fade step via hyprctl eval (same mapping as here: keep both in sync)
   general = {
-    gaps_in          = 6,
-    gaps_out         = 15,
-    border_size      = 1,
-    col              = {
-      active_border   = wal.color5,
-      inactive_border = wal.color0,
-    },
     resize_on_border = false,
     allow_tearing    = false,
   },
 
   decoration = {
-    rounding         = 1,
-    rounding_power   = 3,
-    active_opacity   = 0.9,
-    inactive_opacity = 0.78,
-
-    -- large, soft shadow slightly downwards: windows look like floating cards
-    -- (most visible on the floating stage on workspace 1, modules/home.lua).
-    -- Unfocused windows get a weaker one, so the focused window stands out.
-    shadow           = {
-      enabled        = true,
-      range          = 28,
-      render_power   = 2,
-      offset         = "0 8",
-      color          = "rgba(" .. rgb(wal.color0) .. "cc)",
-      color_inactive = "rgba(" .. rgb(wal.color0) .. "88)",
+    -- the shadow falls slightly downwards (most visible on the floating stage on workspace 1, home.lua)
+    shadow = {
+      render_power = 2,
+      offset       = "0 8",
     },
 
-    blur             = {
-      enabled  = true,
+    blur   = {
       variant  = "haze",
-      size     = 7,
-      passes   = 2,
       vibrancy = 0.1696,
     },
   },

@@ -12,3 +12,5 @@ KeyCapture 1.0 KeyCapture.qml
 SystemPage 1.0 SystemPage.qml
 SyncPage 1.0 SyncPage.qml
 Seal 1.0 Seal.qml
+ColorPick 1.0 ColorPick.qml
+WindowsPreview 1.0 WindowsPreview.qml

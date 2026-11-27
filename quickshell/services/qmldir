@@ -56,3 +56,4 @@ singleton SettingsState 1.0 SettingsState.qml
 singleton NightLight 1.0 NightLight.qml
 singleton WeatherState 1.0 WeatherState.qml
 singleton KeepAwake 1.0 KeepAwake.qml
+singleton WindowStyle 1.0 WindowStyle.qml

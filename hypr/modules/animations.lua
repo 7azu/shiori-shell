@@ -24,9 +24,11 @@ hl.curve("menu_decel",      { type = "bezier", points = { { 0.1,  1    }, { 0,  
 hl.curve("menu_accel",      { type = "bezier", points = { { 0.52, 0.03 }, { 0.72, 0.08 } } })
 hl.curve("softFade",        { type = "bezier", points = { { 0.4,  0    }, { 0.2,  1    } } })
 
--- anim(element, speed, curve, [style])
+-- anim(element, speed, curve, [style]); the speed setting of the "Windows" settings page scales
+-- every speed (style.lua: animSpeed, larger = slower). Sent live again by quickshell/services/WindowStyle.qml.
+local speedFactor = dofile(os.getenv("HOME") .. "/.config/hypr/modules/style.lua").animSpeed
 local function anim(leaf, speed, bezier, style)
-  hl.animation({ leaf = leaf, enabled = true, speed = speed, bezier = bezier, style = style })
+  hl.animation({ leaf = leaf, enabled = true, speed = speed * speedFactor, bezier = bezier, style = style })
 end
 
 -- ┌────────────────────────────────────────────────────────────┐

@@ -53,6 +53,159 @@ Singleton {
         "page": "system",
         "words": "version programs installed missing files host about"
     }, {
+        "id": "windows",
+        "group": 1,
+        "name": "Windows",
+        "seal": "窓",
+        "blurb": "How windows sit on the desktop: gaps, borders, corners, see-through, shadow, blur and motion.",
+        "file": "settings",
+        "page": "windows",
+        "words": "hyprland window windows gaps gap spacing padding margin border borders outline frame color colour active inactive focused pywal wallpaper rounding radius corners rounded squircle opacity transparency transparent see-through shadow drop shadow blur frosted glass animation animations motion speed fast slow",
+        "groups": [{
+            "title": "Spacing",
+            "rows": [{
+                "key": "settings:windows.gapsIn",
+                "label": "Between windows",
+                "desc": "Half of the space between two windows (Hyprland's inner gap).",
+                "type": "number",
+                "min": 0,
+                "max": 40,
+                "step": 1,
+                "unit": "px"
+            }, {
+                "key": "settings:windows.gapsOut",
+                "label": "To the screen edge",
+                "desc": "Space between the windows and the edges of the screen and the bar.",
+                "type": "number",
+                "min": 0,
+                "max": 80,
+                "step": 1,
+                "unit": "px"
+            }]
+        }, {
+            "title": "Borders and corners",
+            "footer": "Wallpaper colors change with every new wallpaper; an own color stays.",
+            "rows": [{
+                "key": "settings:windows.borderSize",
+                "label": "Border",
+                "desc": "Thickness of the line around each window; 0 = none.",
+                "type": "number",
+                "min": 0,
+                "max": 8,
+                "step": 1,
+                "unit": "px"
+            }, {
+                "key": "settings:windows.activeBorder",
+                "label": "Focused window",
+                "desc": "Border color of the window you type into.",
+                "type": "color"
+            }, {
+                "key": "settings:windows.inactiveBorder",
+                "label": "Other windows",
+                "desc": "Border color of all other windows.",
+                "type": "color"
+            }, {
+                "key": "settings:windows.rounding",
+                "label": "Corner radius",
+                "desc": "How round the corners are; 0 = square.",
+                "type": "number",
+                "min": 0,
+                "max": 30,
+                "step": 1,
+                "unit": "px"
+            }, {
+                "key": "settings:windows.roundingPower",
+                "label": "Corner shape",
+                "desc": "Round is a quarter circle; the others run out softer, like app icons.",
+                "type": "choice",
+                "adv": true,
+                "options": [{
+                    "value": 2,
+                    "label": "Round"
+                }, {
+                    "value": 3,
+                    "label": "Smooth"
+                }, {
+                    "value": 5,
+                    "label": "Squircle"
+                }]
+            }]
+        }, {
+            "title": "See-through",
+            "footer": "Some apps keep their own value (terminal, browser, players: hypr/modules/looks.lua).",
+            "rows": [{
+                "key": "settings:windows.activeOpacity",
+                "label": "Focused window",
+                "desc": "100 % = fully opaque.",
+                "type": "number",
+                "min": 30,
+                "max": 100,
+                "step": 2,
+                "unit": "%"
+            }, {
+                "key": "settings:windows.inactiveOpacity",
+                "label": "Other windows",
+                "type": "number",
+                "min": 30,
+                "max": 100,
+                "step": 2,
+                "unit": "%"
+            }]
+        }, {
+            "title": "Shadow and blur",
+            "rows": [{
+                "key": "settings:windows.shadowRange",
+                "switch": "settings:windows.shadow",
+                "label": "Shadow",
+                "desc": "How far the soft shadow under each window reaches.",
+                "type": "number",
+                "min": 2,
+                "max": 80,
+                "step": 2,
+                "unit": "px"
+            }, {
+                "key": "settings:windows.blurSize",
+                "switch": "settings:windows.blur",
+                "label": "Blur",
+                "desc": "How blurred things behind see-through windows and panels look.",
+                "type": "number",
+                "min": 1,
+                "max": 16,
+                "step": 1
+            }, {
+                "key": "settings:windows.blurPasses",
+                "label": "Blur passes",
+                "desc": "More passes are smoother and cost a little more.",
+                "type": "number",
+                "adv": true,
+                "min": 1,
+                "max": 4,
+                "step": 1
+            }]
+        }, {
+            "title": "Motion",
+            "rows": [{
+                "key": "settings:windows.animations",
+                "label": "Animations",
+                "desc": "Windows, workspaces and panels glide in and out.",
+                "type": "toggle"
+            }, {
+                "key": "settings:windows.animSpeed",
+                "label": "Speed",
+                "type": "choice",
+                "options": [{
+                    "value": 1.6,
+                    "label": "Calm"
+                }, {
+                    "value": 1,
+                    "label": "Normal"
+                }, {
+                    "value": 0.6,
+                    "label": "Quick"
+                }]
+            }]
+        }]
+    }, {
         "id": "appearance",
         "group": 1,
         "name": "Appearance",
@@ -541,21 +694,31 @@ Singleton {
         refreshProbe();
     }
 
+    // The stored values of a row: its key, and the key of its switch for a number with one (see SettingRow)
+    function keysOf(r) {
+        return r.switch ? [r.key, r.switch] : [r.key];
+    }
+
+    function differs(key) {
+        const d = defaultOf(key);
+        return d !== undefined && !same(read(key), d);
+    }
+
     // Rows of a page that differ from their default
     function changedRows(sec) {
         return rowsOf(sec).filter((r) => {
-            const d = defaultOf(r.key);
-            return d !== undefined && !same(read(r.key), d);
+            return keysOf(r).some(differs);
         });
     }
 
     function resetSection(sec) {
-        const changes = changedRows(sec).map((r) => {
-            return {
-                "key": r.key,
-                "old": read(r.key)
-            };
-        });
+        const changes = [];
+        for (const r of changedRows(sec)) {
+            for (const k of keysOf(r).filter(differs)) changes.push({
+                "key": k,
+                "old": read(k)
+            })
+        }
         if (changes.length === 0)
             return ;
 

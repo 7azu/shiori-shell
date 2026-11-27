@@ -4,7 +4,8 @@
 // Here every fade step of WalColors goes to Hyprland as hl.config via `hyprctl eval`; the later
 // reload sets the same final colors, so it changes nothing anymore.
 // Same mapping as looks.lua (update along with changes there):
-//   active border = color5, inactive border = color0, shadow = color0 with alpha cc / 88 (inactive)
+//   active/inactive border = what the "Windows" settings page chose (WindowStyle: a palette color fades
+//   along, an own color stays), shadow = color0 with alpha cc / 88 (inactive)
 
 import QtQuick
 import Quickshell
@@ -22,6 +23,7 @@ Singleton {
 
     // Only so the service is created at shell start (see shell.qml)
     function warmUp() {
+        return WindowStyle.started;
     }
 
     function luaFor(c5, c0) {
@@ -33,7 +35,7 @@ Singleton {
         if (!armed)
             return ;
 
-        const lua = luaFor(WalColors.color5, WalColors.color0);
+        const lua = luaFor(WindowStyle.activeBorder, WindowStyle.inactiveBorder);
         if (lua === lastSent)
             return ;
 

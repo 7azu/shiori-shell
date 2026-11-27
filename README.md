@@ -264,6 +264,10 @@ any language. Set `provider` to one of these, or leave it on `auto`, which takes
 
 - **`~/.config/shiori-shell/hypr.lua`** is loaded last by `hyprland.lua`: the place for your own window
   rules, keybindings and autostart.
+- **Window look**: gaps, border size and colors (from the wallpaper or your own), corners, opacity,
+  shadow, blur and animation speed are on the Windows page of the settings window, with a live preview.
+  They are stored under `"windows"` in `settings.json`, read by `hypr/modules/style.lua` and sent to
+  Hyprland at once (`hyprctl eval`), no reload needed.
 - **Monitors**: without a config, every monitor uses its preferred mode. For a fixed layout copy
   `hypr/modules/monitors.example.lua` to `hypr/modules/monitors.lua` (ignored by git).
 

@@ -199,7 +199,12 @@ Item {
                     y: Theme.px(18) * (1 - custom.e)
                 }
 
-                source: page.section.page === "system" ? "SystemPage.qml" : (page.section.page === "sync" ? "SyncPage.qml" : "")
+                source: ({
+                    "system": "SystemPage.qml",
+                    "sync": "SyncPage.qml",
+                    "displays": "DisplaysPage.qml",
+                    "windows": "WindowsPreview.qml"
+                })[page.section.page] || ""
             }
 
             Repeater {

@@ -10,7 +10,10 @@ import Quickshell
 //   toggle, choice (segmented control up to four options, chips beyond), number, text, path (a text
 //   field plus a button that opens the folder browser, see SettingsView),
 //   info (read only), map (list of pairs, full width), link (search result that leads to a page),
-//   key (a keybinding: KeyCapture, see services/Keybinds).
+//   key (a keybinding: KeyCapture, see services/Keybinds), color (palette swatches + own color, full
+//   width: ColorPick).
+//   A number row with "switch": "<key>" gets an on/off switch beside it (stored under that key, default
+//   on); off greys the number out.
 // Below the sentence: what is missing (a program that is not installed, a folder that does not exist),
 // for a keybinding what it waits for or why the pressed keys were not taken.
 Item {
@@ -35,7 +38,7 @@ Item {
     }
     readonly property bool isMap: row.type === "map"
     // The control gets a line of its own
-    readonly property bool wide: row.type === "choice" && opts.length > 4
+    readonly property bool wide: (row.type === "choice" && opts.length > 4) || row.type === "color"
     readonly property var missing: SettingsState.missing(row)
     readonly property bool folderMissing: row.type === "path" && !!value && SettingsState.probe.paths[Settings.expand(value)] === false
     readonly property real pad: Theme.px(14)
@@ -178,7 +181,7 @@ Item {
             width: parent.width
             active: rowItem.wide
             visible: active
-            sourceComponent: chipsControl
+            sourceComponent: rowItem.row.type === "color" ? colorControl : chipsControl
         }
 
         Loader {
@@ -234,18 +237,55 @@ Item {
     }
 
     Component {
-        id: numberControl
+        id: colorControl
 
-        SettingStepper {
-            value: Number(rowItem.value) || 0
-            min: rowItem.row.min
-            max: rowItem.row.max
-            step: rowItem.row.step
-            decimals: rowItem.row.decimals || 0
-            unit: rowItem.row.unit || ""
+        ColorPick {
+            value: String(rowItem.value || "")
             onPicked: (v) => {
                 return rowItem.set(v);
             }
+        }
+
+    }
+
+    Component {
+        id: numberControl
+
+        Row {
+            readonly property bool on: !rowItem.row.switch || SettingsState.read(rowItem.row.switch) !== false
+
+            spacing: Theme.px(14)
+
+            SettingStepper {
+                anchors.verticalCenter: parent.verticalCenter
+                value: Number(rowItem.value) || 0
+                min: rowItem.row.min
+                max: rowItem.row.max
+                step: rowItem.row.step
+                decimals: rowItem.row.decimals || 0
+                unit: rowItem.row.unit || ""
+                enabled: parent.on
+                opacity: parent.on ? 1 : 0.35
+                onPicked: (v) => {
+                    return rowItem.set(v);
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 200
+                    }
+
+                }
+
+            }
+
+            IosSwitch {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: !!rowItem.row.switch
+                checked: parent.on
+                onToggled: SettingsState.apply(rowItem.row.switch, !checked, rowItem.row.label)
+            }
+
         }
 
     }
