@@ -20,6 +20,21 @@ Item {
     readonly property real t: mainBar.trayRevealT
     // Index of the icon under the mouse (-1 = none), and of the one whose menu is open
     property int hoveredIndex: -1
+    // An icon from the theme by name ("image://icon/<name>") only if the theme has it, else the name
+    // without "-symbolic", else "" (the glyph shows). Pictures sent by the program itself stay as they are.
+    function iconSource(icon) {
+        const s = String(icon || "");
+        if (!s.startsWith("image://icon/"))
+            return s;
+
+        const name = s.slice(13).split("?")[0];
+        if (Quickshell.iconPath(name, true) !== "")
+            return s;
+
+        const plain = name.replace(/-symbolic$/, "");
+        return plain !== name && Quickshell.iconPath(plain, true) !== "" ? "image://icon/" + plain : "";
+    }
+
     property int openIndex: -1
     // The pill stays behind the icon with the open menu
     readonly property int markedIndex: hoveredIndex >= 0 ? hoveredIndex : openIndex
@@ -123,9 +138,12 @@ Item {
                 }
 
                 IconImage {
+                    id: trayIcon
+
                     anchors.centerIn: parent
                     implicitSize: 18
-                    source: slot.modelData.icon
+                    source: drawer.iconSource(slot.modelData.icon)
+                    visible: source != ""
                     scale: slot.hovered ? 1.14 : 1
 
                     Behavior on scale {
@@ -136,6 +154,18 @@ Item {
 
                     }
 
+                }
+
+                // No icon for it in the icon theme (e.g. a fresh system without a full theme): a neutral
+                // glyph instead of Qt's magenta "missing" square
+                Text {
+                    anchors.centerIn: parent
+                    visible: !trayIcon.visible
+                    text: String.fromCodePoint(0xf0614) // md-application_outline
+                    color: Theme.text
+                    font.family: Theme.font
+                    font.pixelSize: 16
+                    scale: trayIcon.scale
                 }
 
                 // The program wants attention
