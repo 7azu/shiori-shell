@@ -62,12 +62,14 @@ Singleton {
                 })
             });
         }
-        // The shell's own settings window is found like an app (settings/SettingsWindow.qml)
+        // The shell's own settings window is found like an app (settings/SettingsWindow.qml).
+        // Its icon is our own drawing, not one from the icon theme (resources/icons/shiori-settings.svg);
+        // an own icon named "shiori-settings" (settings "icons") replaces it.
         if (!seen["Shiori Settings"])
             apps.push({
             "name": "Shiori Settings",
             "exec": "qs ipc call settings open ''",
-            "icon": "preferences-system",
+            "icon": Settings.icon("shiori-settings") || String(Qt.resolvedUrl("../resources/icons/shiori-settings.svg")),
             "terminal": false,
             "file": "shiori-settings"
         });
@@ -96,6 +98,16 @@ Singleton {
     }
 
     onEntriesChanged: rebuild()
+
+    // The settings are read after the start and can change: the entry of the settings window may get another icon
+    Connections {
+        function onDataChanged() {
+            root.rebuild();
+        }
+
+        target: Settings
+    }
+
     // When opening with an empty list, rebuild right away: DesktopEntries reads again when a .desktop file
     // changes anywhere (update, Steam ...), and may briefly have reported an empty list then
     onLauncherVisibleChanged: {
