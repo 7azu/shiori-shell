@@ -50,15 +50,15 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 **Bar**
 - Workspaces, active window, clock with calendar, notifications (grouped by app, kept across a restart, a warning when the battery runs low)
 - Drawer with shortcuts to the pickers (clipboard, trash, Wi-Fi, Bluetooth, apps, language tool)
-- Tray (right-click the logo): the programs that keep running in the background (Steam, chat apps) as icons
-  in the bar. A click brings one up, a right-click opens its menu; "Tray" in the launcher lists them for the
-  keyboard
+- Tray: the programs that keep running in the background (Steam, chat apps) as icons right of the gear.
+  A click brings one up, a right-click opens a small menu with Open and Exit; "Tray" in the launcher (or a
+  shortcut you give it) lists them for the keyboard
 - Dropdowns for audio, system stats (CPU, GPU, RAM, disks), VPN, battery, sync, and the usage
   limits of Claude Code and Codex
 - Screen dropdown: a night light that follows sunset and sunrise (or your own times), and keep awake,
   which stops the automatic lock for a while
 - Calendar (a click on the clock) with the weather: now, the next days, and the day you select
-- The logo on the left: a click opens the drawer with the pickers, a right-click the one with the tray programs. Icons are switched on and off in
+- The logo on the left: a click opens the drawer with the pickers. Icons are switched on and off in
   the settings (a hidden icon also turns its feature off) and dragged into another order after "Arrange
   icons" there, or a middle click on the logo.
 
@@ -67,7 +67,7 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
   and does more by its first character: `=` calculates, `:` finds emoji, `?` searches the web, `>` runs a
   command, `/` finds files. What you start often comes first.
 - Wallpapers, including animated ones (GIF, video) and an online search on wallhaven.cc
-- Music library for MPD
+- Music library for MPD, sorted by most played, name or recently added (`Alt + S` switches)
 - Clipboard history (with pinned entries that survive clearing), trash, Wi-Fi, Bluetooth
 - VPN picker with a globe
 
@@ -84,7 +84,8 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 - Encrypted folders (gocryptfs) that unlock with a password in the file browser and yazi
 - Calculator, volume and brightness popups, notification toasts
 - A password dialog in the look of the shell when an app asks for administrator rights (polkit)
-- A settings window for all of it (`Super + ,` or the gear in the bar)
+- A settings window for all of it (`Super + ,` or the gear in the bar): bar and features, window gaps,
+  borders, blur and animation speed, monitors, shortcuts, what happens while you are away, and more
 - Audio visualizer on the desktop
 
 **Colors from the wallpaper** (with [pywal](https://github.com/dylanaraps/pywal))
