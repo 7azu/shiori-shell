@@ -11,6 +11,7 @@ their own licenses. The full texts are in `licenses/`.
 | World map data | `quickshell/resources/globe/` (made by `scripts/make-globe-map.py`) | Natural Earth, naturalearthdata.com | Public domain |
 | Power menu icons | `quickshell/resources/icons/*.png` | Material Design Icons (pictogrammers.com), rendered from the Nerd Font | Apache 2.0 |
 | Default wallpaper | `wallpapers/default.jpg` (installed as `~/Pictures/Wallpaper/shiori-default.jpg`) | Fan art of a character from Neon Genesis Evangelion; the artist's signature is in the image | Included with the artist's permission. Not covered by the GPL-3.0: all rights to the artwork stay with the artist, the character belongs to its rights holders. Do not reuse it outside shiori-shell without asking the artist. |
+| Emoji names and keywords | `quickshell/resources/emoji/emoji.json` (made by `scripts/make-emoji.py`) | Unicode emoji data and CLDR annotations, unicode.org | Unicode License v3 (`licenses/Unicode-3.0.txt`) |
 | Weather symbols | `quickshell/bar/WeatherGlyph.qml` (outlines redrawn from the icon paths) | Lucide, lucide.dev | ISC (`licenses/Lucide-ISC.txt`) |
 | system24 Discord theme (pywal edition) | `wal/templates/discord-system24.theme.css` | github.com/refact0r/system24, adapted for pywal | MIT (`licenses/system24-MIT.txt`) |
 

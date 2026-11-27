@@ -4,26 +4,84 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
+// App launcher (Super + Space): a grid of tiles under a search bar. What the search finds decides
+// services/LauncherSearch: apps and shell actions, or by the first character "=" calculator, ":" emoji,
+// "?" web search, ">" run a command, "/" files. Every result is a tile in the same grid; the modes
+// without a list (calculator, web, run) show one big line instead.
 Item {
     id: root
 
     property string terminalCommand: "kitty"
+    readonly property string mode: LauncherSearch.mode
+    readonly property string term: LauncherSearch.term
     property var allApps: AppLauncherState.allApps
     // State for hidden apps
     property var hiddenApps: ({
     })
     property bool showHidden: false
     readonly property string hiddenFile: Quickshell.stateDir + "/app-launcher-hidden.json"
-    property var filteredApps: allApps.filter((app) => {
-        const isHidden = hiddenApps[app.exec] === true;
-        if (isHidden && !showHidden)
-            return false;
-
-        return app.name.toLowerCase().includes(PickerManager.searchText.toLowerCase());
-    })
+    // The tiles of the grid: result objects of LauncherSearch (kind, key, name ...)
+    property var results: {
+        switch (mode) {
+        case "apps":
+            return LauncherSearch.rank(allApps, hiddenApps, showHidden);
+        case "emoji":
+            return LauncherSearch.emojiResults;
+        case "files":
+            return LauncherSearch.fileResults;
+        }
+        return [];
+    }
     // ==== Calculator: "= 12 * (3 + 4)" in the search computes, Enter copies the result ====
-    readonly property bool calcMode: PickerManager.searchText.trim().startsWith("=")
-    readonly property string calcResult: calcMode ? calculate(PickerManager.searchText.trim().slice(1)) : ""
+    readonly property bool calcMode: mode === "calc"
+    readonly property string calcResult: calcMode ? calculate(term) : ""
+    // ==== The big line for modes without tiles, and for "nothing found" ====
+    readonly property string infoTitle: {
+        switch (mode) {
+        case "calc":
+            return calcResult !== "" ? calcResult : "…";
+        case "web":
+        case "run":
+            return term !== "" ? term : "…";
+        }
+        return "";
+    }
+    readonly property string infoHint: {
+        switch (mode) {
+        case "calc":
+            return calcResult !== "" ? "Enter copies the result" : "Type a calculation, e.g. = 12 * (3 + 4) or = sqrt(2)";
+        case "web":
+            if (term === "")
+                return "Type what to search for, an address, or a site and a search (amazon.de iphone)";
+
+            if (LauncherSearch.siteSearch(term))
+                return "Enter searches " + LauncherSearch.siteSearch(term).host + " for " + LauncherSearch.siteSearch(term).query;
+
+            return LauncherSearch.isAddress(term) ? "Enter opens " + LauncherSearch.webTarget(term) : "Enter searches the web";
+        case "run":
+            return term !== "" ? "Enter runs it in a terminal  ·  Ctrl + Enter in the background" : "Type a command, e.g. > htop";
+        case "files":
+            if (results.length > 0)
+                return "";
+
+            if (term.length < LauncherSearch.fileMinLength)
+                return "Type at least two letters of a file name";
+
+            return LauncherSearch.fileBusy ? "Searching …" : "No files found";
+        case "emoji":
+            return results.length > 0 || LauncherSearch.emojiAll.length === 0 ? "" : "No emoji found";
+        }
+        return results.length === 0 && AppLauncherState.appsLoaded ? "Nothing found" : "";
+    }
+    readonly property var modeGlyphs: ({
+        "apps": "\u{F0349}",
+        "calc": "\u{F00EC}",
+        "emoji": "\u{F01F5}",
+        "web": "\u{F059F}",
+        "run": "\u{F018D}",
+        "files": "\u{F024B}"
+    })
+    readonly property var modeHints: [["=", "calculate"], [":", "emoji"], ["?", "web"], [">", "run"], ["/", "files"]]
     readonly property var calcNames: ({
         "sqrt": "Math.sqrt",
         "sin": "Math.sin",
@@ -45,12 +103,14 @@ Item {
     property real lastMouseY: -1
     // Same tiles and cells as in the music picker (Theme), the icon grows in the old ratio
     // (60 px icon in an 88 px tile)
-    readonly property real cellW: Theme.pickerCellW
-    readonly property real cellH: Theme.pickerCellH
-    readonly property real tileSize: Theme.pickerTile
+    // Emoji are many and need no label to be told apart: smaller tiles, more per row
+    readonly property bool small: mode === "emoji"
+    readonly property real cellW: small ? 108 : Theme.pickerCellW
+    readonly property real cellH: small ? 124 : Theme.pickerCellH
+    readonly property real tileSize: small ? 72 : Theme.pickerTile
     readonly property real iconSize: Math.round(tileSize * 60 / 88)
-    // Up to 5 columns, fewer if the monitor is too narrow
-    readonly property int gridColumns: Math.max(2, Math.min(5, Math.floor((width - 96) / cellW)))
+    // Up to 5 columns (emoji: 10), fewer if the monitor is too narrow
+    readonly property int gridColumns: Math.max(2, Math.min(small ? 10 : 5, Math.floor((width - 96) / cellW)))
     // ==== Tab switch: only the content animates, the search bar always stays ====
     // tabIn: 0 = content hidden, 1 = fully there. The search bar on the other hand switches
     // right away, so it never flickers or moves during the switch.
@@ -82,7 +142,7 @@ Item {
     // (qs log), so the cause can be found
     function checkEmpty() {
         // Only without search text: a search without hits is empty on purpose
-        if (!root.tabActive || root.calcMode || PickerManager.searchText !== "")
+        if (!root.tabActive || root.mode !== "apps" || PickerManager.searchText !== "")
             return;
         let shown = 0;
         for (const c of grid.contentItem.children) {
@@ -96,7 +156,7 @@ Item {
             "entries": AppLauncherState.entries.length,
             "appsLoaded": AppLauncherState.appsLoaded,
             "search": PickerManager.searchText,
-            "filtered": root.filteredApps.length,
+            "filtered": root.results.length,
             "gridCount": grid.count,
             "tilesShown": shown,
             "tabIn": root.tabIn,
@@ -105,6 +165,11 @@ Item {
             "visible": root.visible,
             "picker": PickerManager.activePicker
         }));
+    }
+
+    function selectFirst() {
+        grid.currentIndex = 0;
+        grid.positionViewAtBeginning();
     }
 
     function focusSearch() {
@@ -148,10 +213,72 @@ Item {
         AppLauncherState.close();
     }
 
+    // Enter or a click on a tile. alt (Ctrl + Enter): the other way to open it, where there is one.
+    function activate(item, alt) {
+        if (!item)
+            return ;
+
+        switch (item.kind) {
+        case "app":
+            launchApp(item);
+            return ;
+        case "action":
+            LauncherSearch.used(item.key);
+            // An action that opens another picker switches over by itself
+            if (!LauncherSearch.opensPicker(item.id))
+                AppLauncherState.close();
+
+            LauncherSearch.runAction(item.id);
+            return ;
+        case "emoji":
+            LauncherSearch.used(item.key);
+            Quickshell.execDetached(["wl-copy", "--", item.char]);
+            NotificationState.send("Emoji", item.char + "  " + item.name, "Copied to clipboard", {
+                "timeout": 2000,
+                "success": true
+            });
+            AppLauncherState.close();
+            return ;
+        case "file":
+            LauncherSearch.openFile(item, terminalCommand, alt);
+            AppLauncherState.close();
+            return ;
+        }
+    }
+
+    // Enter in the search field
+    function submit(alt) {
+        switch (mode) {
+        case "calc":
+            if (calcResult !== "")
+                copyResult();
+
+            return ;
+        case "web":
+            if (term === "")
+                return ;
+
+            LauncherSearch.openWeb(term);
+            AppLauncherState.close();
+            return ;
+        case "run":
+            if (term === "")
+                return ;
+
+            LauncherSearch.runCommand(term, terminalCommand, !alt);
+            AppLauncherState.close();
+            return ;
+        }
+        if (results.length > 0)
+            activate(results[grid.currentIndex], alt);
+
+    }
+
     function launchApp(app) {
         if (!app)
             return ;
 
+        LauncherSearch.used(app.key);
         try {
             let command = [];
             if (app.terminal)
@@ -204,18 +331,15 @@ Item {
             playIntro();
 
     }
-    onFilteredAppsChanged: grid.currentIndex = 0
+    // The best hit is the selected one. Only after the grid has taken the new list: it keeps the selection
+    // on the tile it was on, and that tile may have moved down.
+    onResultsChanged: Qt.callLater(root.selectFirst)
     Keys.onEscapePressed: AppLauncherState.close()
-    Keys.onReturnPressed: {
-        if (root.calcMode) {
-            if (root.calcResult !== "")
-                root.copyResult();
-
-            return ;
-        }
-        if (root.filteredApps.length > 0)
-            root.launchApp(root.filteredApps[grid.currentIndex]);
-
+    Keys.onReturnPressed: (event) => {
+        return root.submit((event.modifiers & Qt.ControlModifier) !== 0);
+    }
+    Keys.onEnterPressed: (event) => {
+        return root.submit((event.modifiers & Qt.ControlModifier) !== 0);
     }
 
     Timer {
@@ -260,6 +384,15 @@ Item {
         id: hiddenWriter
     }
 
+    // The site chip of a "?" search only lives as long as the launcher stays open on this tab
+    Connections {
+        function onActivePickerChanged() {
+            LauncherSearch.siteHost = "";
+        }
+
+        target: PickerManager
+    }
+
     // Search bar, top center
     Rectangle {
         id: searchBar
@@ -281,26 +414,55 @@ Item {
             anchors.left: parent.left
             anchors.leftMargin: 22
             anchors.verticalCenter: parent.verticalCenter
-            text: "󰍉"
+            // The symbol says what the search is doing right now
+            text: LauncherSearch.siteHost !== "" ? (LauncherSearch.siteGlyph(LauncherSearch.siteHost) || root.modeGlyphs.web) : root.modeGlyphs[root.mode]
             font.family: Theme.font
             font.pixelSize: 18
-            color: WalColors.withAlpha(WalColors.color7, 0.5)
+            color: root.mode === "apps" ? WalColors.withAlpha(WalColors.color7, 0.5) : WalColors.color4
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Appearance.anim.durations.fast
+                }
+
+            }
+
         }
 
         TextInput {
             id: searchInput
 
             anchors.fill: parent
-            anchors.leftMargin: 54
+            anchors.leftMargin: 54 + (sitePrefix.visible ? sitePrefix.implicitWidth + 8 : 0)
             anchors.rightMargin: 156 // room for the switcher
             verticalAlignment: Text.AlignVCenter
+            // A web search or a command can be longer than the field: scroll inside it
+            clip: true
             font.family: Theme.font
             font.pixelSize: 16
             color: WalColors.color7
             text: PickerManager.searchText
-            onTextChanged: PickerManager.searchText = text
+            onTextChanged: {
+                // "? amazon.de " -> chip: the address moves in front of the field
+                const host = LauncherSearch.siteHost === "" ? LauncherSearch.chipHost(text) : "";
+                if (host !== "") {
+                    LauncherSearch.siteHost = host;
+                    text = "";
+                    return ;
+                }
+                PickerManager.searchText = text;
+            }
             Component.onCompleted: forceActiveFocus()
             Keys.onPressed: (event) => {
+                // Backspace in the empty field takes the chip apart again
+                if (event.key === Qt.Key_Backspace && text === "" && LauncherSearch.siteHost !== "") {
+                    const host = LauncherSearch.siteHost;
+                    LauncherSearch.siteHost = "";
+                    text = "?" + host;
+                    cursorPosition = text.length;
+                    event.accepted = true;
+                    return ;
+                }
                 // Ctrl+J/K = arrow down/up, the same in all pickers (PickerManager.navKey)
                 const key = PickerManager.navKey(event);
                 if (key === Qt.Key_Tab) {
@@ -338,13 +500,28 @@ Item {
 
         Text {
             anchors.left: parent.left
-            anchors.leftMargin: 54
             anchors.verticalCenter: parent.verticalCenter
             text: "Search"
             color: WalColors.withAlpha(WalColors.color7, 0.35)
             font.family: Theme.font
             font.pixelSize: 14
             visible: searchInput.text === ""
+            anchors.leftMargin: 54 + (sitePrefix.visible ? sitePrefix.implicitWidth + 8 : 0)
+        }
+
+        // Chip text behind the icon: "[icon]:" for known sites, "[icon] example.com:" for the others
+        Text {
+            id: sitePrefix
+
+            anchors.left: parent.left
+            anchors.leftMargin: 54
+            anchors.verticalCenter: parent.verticalCenter
+            visible: LauncherSearch.siteHost !== "" && root.mode === "web"
+            text: (LauncherSearch.siteGlyph(LauncherSearch.siteHost) !== "" ? "" : LauncherSearch.siteHost) + ":"
+            color: WalColors.color4
+            font.family: Theme.font
+            font.pixelSize: 16
+            font.bold: true
         }
 
         PickerSwitcher {
@@ -365,6 +542,58 @@ Item {
 
     }
 
+    // What the first character can do, as long as nothing is typed
+    Row {
+        anchors.top: searchBar.bottom
+        anchors.topMargin: 15
+        anchors.horizontalCenter: searchBar.horizontalCenter
+        spacing: 18
+        visible: root.tabActive && opacity > 0.01
+        opacity: PickerManager.searchText === "" ? root.tabIn : 0
+
+        Repeater {
+            model: root.modeHints
+
+            Row {
+                id: hint
+
+                required property var modelData
+
+                spacing: 6
+
+                Text {
+                    anchors.baseline: hintWord.baseline
+                    text: hint.modelData[0]
+                    color: Theme.textDim
+                    font.family: Theme.font
+                    font.pixelSize: Theme.sizeSmall
+                    font.bold: true
+                }
+
+                Text {
+                    id: hintWord
+
+                    text: hint.modelData[1].toUpperCase()
+                    color: Theme.textFaint
+                    font.family: Theme.fontUi
+                    font.pixelSize: Theme.sizeMicro
+                    font.bold: true
+                    font.letterSpacing: Theme.microSpacing
+                }
+
+            }
+
+        }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Appearance.anim.durations.fast
+            }
+
+        }
+
+    }
+
     // ==== Button next to the search: show/hide hidden apps ====
     // Deliberately smaller/subtler than the search bar (40 instead of 56): a side feature, should not compete
     Rectangle {
@@ -373,7 +602,8 @@ Item {
         // Active (hidden apps visible) in the accent color, so you do not forget the mode
         readonly property bool hot: eyeMouse.containsMouse || root.showHidden
 
-        visible: root.tabActive
+        // Hiding is about apps only
+        visible: root.tabActive && root.mode === "apps"
         anchors.left: searchBar.right
         anchors.leftMargin: 10
         anchors.verticalCenter: searchBar.verticalCenter
@@ -450,26 +680,35 @@ Item {
         visible: opacity > 0.01
 
 
-        // Calculator result (search starts with "=")
+        // One big line: the calculator's result, what "?" searches and ">" runs, or that nothing was found
         Column {
             anchors.horizontalCenter: parent.horizontalCenter
             y: 24
+            width: Math.min(parent.width, 900)
             spacing: 10
-            visible: root.calcMode
+            visible: root.infoTitle !== "" || root.infoHint !== ""
 
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: root.calcResult !== "" ? root.calcResult : "…"
-                color: root.calcResult !== "" ? Theme.text : Theme.textFaint
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                visible: root.infoTitle !== ""
+                text: root.infoTitle
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+                color: root.infoTitle !== "…" ? Theme.text : Theme.textFaint
                 font.family: Theme.fontUi
                 font.features: Theme.tabular
-                font.pixelSize: 44
+                // A result is short and may be big; a search text or command can be long
+                font.pixelSize: root.calcMode ? 44 : 30
                 font.weight: Font.DemiBold
             }
 
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: root.calcResult !== "" ? "Enter copies the result" : "Type a calculation, e.g. = 12 * (3 + 4) or = sqrt(2)"
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                text: root.infoHint
+                textFormat: Text.PlainText
+                elide: Text.ElideMiddle
                 color: Theme.textDim
                 font.family: Theme.fontUi
                 font.pixelSize: Theme.sizeLabel
@@ -484,7 +723,7 @@ Item {
             color: WalColors.withAlpha(WalColors.color7, 0.45)
             font.family: Theme.font
             font.pixelSize: 14
-            visible: !AppLauncherState.appsLoaded && grid.count === 0
+            visible: root.mode === "apps" && !AppLauncherState.appsLoaded && grid.count === 0
         }
 
         GridView {
@@ -506,8 +745,8 @@ Item {
             // ScriptModel syncs the list instead of replacing it: while typing the
             // tiles (with icon and shadow) stay, only the filtered-out ones disappear
             model: ScriptModel {
-                values: root.filteredApps
-                objectProp: "name"
+                values: root.results
+                objectProp: "key"
             }
 
             // Smooth scrolling: the target position is animated
@@ -548,21 +787,17 @@ Item {
                 }
             }
 
-            Text {
-                anchors.centerIn: parent
-                text: "No apps found"
-                color: WalColors.withAlpha(WalColors.color7, 0.4)
-                font.family: Theme.font
-                visible: grid.count === 0 && AppLauncherState.appsLoaded && !root.calcMode
-            }
-
             delegate: Item {
                 id: delegateItem
 
                 required property var modelData
                 required property int index
                 readonly property bool isCurrent: GridView.isCurrentItem
-                readonly property bool isHidden: root.hiddenApps[modelData.exec] === true
+                readonly property string kind: modelData.kind
+                readonly property bool isApp: kind === "app"
+                readonly property bool isHidden: isApp && root.hiddenApps[modelData.exec] === true
+                // An action that is switched on right now (night light, keep awake ...)
+                readonly property bool isOn: kind === "action" && LauncherSearch.actionOn(modelData.id) === true
                 // Fade-in animation (staggered, as in the clipboard)
                 property real enter: 1
                 readonly property int gridCol: index % root.gridColumns
@@ -634,10 +869,12 @@ Item {
                     }
                     onClicked: (mouse) => {
                         if (mouse.button === Qt.RightButton) {
-                            root.toggleHide(delegateItem.modelData);
+                            if (delegateItem.isApp)
+                                root.toggleHide(delegateItem.modelData);
+
                         } else {
                             grid.currentIndex = index;
-                            root.launchApp(delegateItem.modelData);
+                            root.activate(delegateItem.modelData, (mouse.modifiers & Qt.ControlModifier) !== 0);
                         }
                     }
                 }
@@ -665,13 +902,49 @@ Item {
                             hollow: true
                         }
 
-                        AppIcon {
+                        // What the tile shows depends on the kind: an app its icon, an action or a file
+                        // a symbol, an emoji itself
+                        Loader {
                             anchors.centerIn: parent
-                            width: root.iconSize
-                            height: root.iconSize
-                            icon: modelData.icon || ""
-                            name: modelData.name
-                            highlighted: isCurrent
+                            active: delegateItem.isApp
+
+                            sourceComponent: AppIcon {
+                                width: root.iconSize
+                                height: root.iconSize
+                                icon: delegateItem.modelData.icon || ""
+                                name: delegateItem.modelData.name
+                                highlighted: delegateItem.isCurrent
+                            }
+
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: delegateItem.kind === "action" || delegateItem.kind === "file"
+                            text: delegateItem.modelData.glyph || ""
+                            color: delegateItem.isOn ? WalColors.color4 : WalColors.color7
+                            font.family: Theme.font
+                            font.pixelSize: Math.round(root.tileSize * 0.44)
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: delegateItem.kind === "emoji"
+                            text: delegateItem.modelData.char || ""
+                            font.family: "Noto Color Emoji"
+                            font.pixelSize: Math.round(root.tileSize * 0.5)
+                        }
+
+                        // Switched on: a dot in the corner
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.right: parent.right
+                            anchors.margins: 10
+                            width: 7
+                            height: 7
+                            radius: 3.5
+                            color: WalColors.color4
+                            visible: delegateItem.isOn
                         }
 
                         // Small hide/unhide button (appears on hover)
@@ -683,7 +956,7 @@ Item {
                             anchors.right: parent.right
                             anchors.margins: 4
                             color: hideMouse.containsMouse ? WalColors.withAlpha(WalColors.color1, 0.9) : WalColors.withAlpha(WalColors.color0, 0.8)
-                            visible: (mArea.containsMouse || delegateItem.isCurrent) && (root.showHidden || !delegateItem.isHidden)
+                            visible: delegateItem.isApp && (mArea.containsMouse || delegateItem.isCurrent) && (root.showHidden || !delegateItem.isHidden)
 
                             Text {
                                 anchors.centerIn: parent
@@ -727,11 +1000,25 @@ Item {
                         horizontalAlignment: Text.AlignHCenter
                         text: delegateItem.modelData.name + (delegateItem.isHidden ? " (hidden)" : "")
                         font.family: Theme.font
-                        font.pixelSize: 12
-                        color: delegateItem.isHidden ? WalColors.withAlpha(WalColors.color7, 0.5) : WalColors.color7
+                        font.pixelSize: root.small ? 10 : 12
+                        color: delegateItem.isHidden || root.small ? WalColors.withAlpha(WalColors.color7, 0.5) : WalColors.color7
                         elide: Text.ElideRight
-                        maximumLineCount: 2
-                        wrapMode: Text.WordWrap
+                        // An emoji's name is only a hint: one line. A file gets its folder below instead of a second line.
+                        maximumLineCount: root.small || delegateItem.kind === "file" ? 1 : 2
+                        wrapMode: root.small || delegateItem.kind === "file" ? Text.NoWrap : Text.WordWrap
+                    }
+
+                    // Where the file is
+                    Text {
+                        width: grid.cellWidth - 12
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        horizontalAlignment: Text.AlignHCenter
+                        visible: delegateItem.kind === "file"
+                        text: delegateItem.modelData.sub || ""
+                        font.family: Theme.fontUi
+                        font.pixelSize: Theme.sizeSmall
+                        color: WalColors.withAlpha(WalColors.color7, 0.55)
+                        elide: Text.ElideMiddle
                     }
 
                 }

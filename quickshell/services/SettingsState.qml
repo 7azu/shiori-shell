@@ -373,6 +373,15 @@ Singleton {
                 "type": "toggle"
             }]
         }, {
+            "title": "Launcher",
+            "footer": "In the launcher's search: = calculates, : finds emoji, ? searches the web, > runs a command, / finds files.",
+            "rows": [{
+                "key": "settings:launcher.searchUrl",
+                "label": "Web search",
+                "desc": "The address that ? opens. %s stands for what you typed.",
+                "type": "text"
+            }]
+        }, {
             "title": "Visualizer",
             "rows": [{
                 "key": "settings:desktop.visualizer",

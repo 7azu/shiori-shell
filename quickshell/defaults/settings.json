@@ -16,6 +16,9 @@
   "keys": {
     "mod": "SUPER"
   },
+  "launcher": {
+    "searchUrl": "https://duckduckgo.com/?q=%s"
+  },
   "night": {
     "mode": "off",
     "schedule": "sun",

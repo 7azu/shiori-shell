@@ -9,7 +9,8 @@ Singleton {
     id: root
 
     readonly property bool launcherVisible: PickerManager.isOpen("app")
-    // All apps as light objects { name, exec, icon, terminal, file }, sorted by name
+    // All apps as light objects { name, exec, icon, terminal, file, generic, keywords }, sorted by name.
+    // generic ("Web Browser") and keywords are only for the search (services/LauncherSearch).
     property var allApps: []
     property bool appsLoaded: false
     // The first access triggers the reading; the result comes shortly after
@@ -54,7 +55,11 @@ Singleton {
                 "exec": exec,
                 "icon": e.icon || "",
                 "terminal": e.runInTerminal === true,
-                "file": e.id
+                "file": e.id,
+                "generic": e.genericName || "",
+                "keywords": Array.from(e.keywords || []).map((w) => {
+                    return String(w).toLowerCase();
+                })
             });
         }
         // The shell's own settings window is found like an app (settings/SettingsWindow.qml)

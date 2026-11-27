@@ -59,5 +59,6 @@ singleton PolkitState 1.0 PolkitState.qml
 singleton IdleState 1.0 IdleState.qml
 singleton DisplayState 1.0 DisplayState.qml
 singleton KeepAwake 1.0 KeepAwake.qml
+singleton LauncherSearch 1.0 LauncherSearch.qml
 singleton TrayState 1.0 TrayState.qml
 singleton WindowStyle 1.0 WindowStyle.qml

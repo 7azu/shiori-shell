@@ -63,7 +63,9 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
   icons" there, or a middle click on the logo.
 
 **Pickers** (full-screen, keyboard first)
-- App launcher and task manager
+- App launcher and task manager. The launcher's search also finds shell actions (night light, lock, Wi-Fi …)
+  and does more by its first character: `=` calculates, `:` finds emoji, `?` searches the web, `>` runs a
+  command, `/` finds files. What you start often comes first.
 - Wallpapers, including animated ones (GIF, video) and an online search on wallhaven.cc
 - Music library for MPD
 - Clipboard history, trash, Wi-Fi, Bluetooth
@@ -226,6 +228,9 @@ and the XDG folders (`$PICTURES`, `$MUSIC`, `$DOCUMENTS`, `$DOWNLOAD`, `$VIDEOS`
 
 **`desktop`**: `"visualizer": false` turns the audio wave on workspace 1 off, `"stars"` is `"off"`, `"calm"`
 or `"animated"` for the sky in the power menu, lock screen and workspace overview.
+
+**`launcher`**: `"searchUrl"` is the address that `?` in the launcher opens, with `%s` for what you typed
+(default `https://duckduckgo.com/?q=%s`).
 
 **`night`**: the night light of the screen dropdown (needs `hyprsunset`, which the installer brings).
 - `"mode"` is `"off"`, `"auto"` or `"on"`; the dropdown and a click on the bar icon change it.
