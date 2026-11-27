@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../common"
 import "../services"
 import QtQuick
 import QtQuick.Effects
@@ -171,14 +172,14 @@ PanelWindow {
                     Repeater {
                         model: win.trayItems
 
-                        delegate: IconImage {
+                        delegate: TrayIcon {
                             required property var modelData
                             required property int index
                             readonly property real r: Math.max(0, Math.min(1, win.shown * 1.7 - 0.35 - index * 0.06))
 
                             y: 5
-                            implicitSize: 16
-                            source: modelData.icon
+                            size: 16
+                            icon: modelData.icon || ""
                             opacity: r * (TrayState.isHidden(modelData) ? 0.45 : 0.9)
                             scale: 0.6 + 0.4 * r
                         }

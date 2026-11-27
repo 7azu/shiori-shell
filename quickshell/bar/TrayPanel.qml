@@ -296,10 +296,10 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 12
 
-                    IconImage {
+                    TrayIcon {
                         anchors.verticalCenter: parent.verticalCenter
-                        implicitSize: 22
-                        source: row.modelData.icon
+                        size: 22
+                        icon: row.modelData.icon || ""
                     }
 
                     Column {
