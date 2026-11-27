@@ -21,10 +21,9 @@ hl.on("hyprland.start", function()
   -- wallpaper, colors, terminal layout, fcitx5, MPD
   hl.exec_cmd(home .. "/.config/hypr/scripts/start.sh")
   hl.exec_cmd(home .. "/.config/hypr/scripts/vpn-state.sh restore")
-  -- via wrapper: limits jemalloc arenas (Quickshell RAM, see the script).
-  -- monitor-order.sh first: Qt times all animations by the first monitor Hyprland reports; it moves
-  -- the fastest monitor to the front (otherwise everything animates at 75 Hz on the 240 Hz screen)
-  hl.exec_cmd("sh -c '" .. home .. "/.config/hypr/scripts/monitor-order.sh; exec " .. home .. "/.config/hypr/scripts/quickshell.sh -n'")
+  -- via wrapper: limits jemalloc arenas (Quickshell RAM) and puts the bar monitor first for Qt
+  -- (monitor-order.sh: Qt times all animations by the first monitor, otherwise 75 Hz on the 240 Hz screen)
+  hl.exec_cmd(home .. "/.config/hypr/scripts/quickshell.sh -n")
 
 
   -- clipboard history (the script lives with Quickshell)

@@ -6,4 +6,9 @@
 # Quickshell got to ~900 MB. With 2 arenas (measured): video player ~127 instead of ~223 MB, the empty
 # shell 29 instead of 59 MB, CPU load unchanged. Applies only to Quickshell, not to other programs.
 export MALLOC_CONF="narenas:2,dirty_decay_ms:1000,muzzy_decay_ms:0,background_thread:true"
+
+# The bar monitor must be the first output Qt sees, it times all animations (monitor-order.sh;
+# usually a quick check that changes nothing)
+"$(dirname "$(readlink -f "$0")")/monitor-order.sh"
+
 exec qs "$@"
