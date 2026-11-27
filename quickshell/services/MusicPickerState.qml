@@ -13,6 +13,21 @@ QtObject {
     property var allSongs: []
     property bool songsLoaded: false
     property bool songsLoading: false
+    // When each song came into the library (file mtime from mpd = download time, yt-dlp keeps --no-mtime):
+    // song path -> ms since epoch. For the "Recent" order.
+    property var songAdded: ({
+    })
+    // ==== Order of the grid ("top" = most played, "name", "recent") and play counts ====
+    // Like the app launcher: a song counts as played after 30 s of playback, from anywhere (picker,
+    // queue, mpc). Lives in <stateDir>/music-plays.json as
+    // { "sort": "top", "plays": { "<song path>": { "n": count, "t": last time } } }.
+    readonly property var sortModes: ["top", "name", "recent"]
+    property string sortMode: "top"
+    property var plays: ({
+    })
+    property bool playsLoaded: false
+    readonly property string playsFile: Quickshell.stateDir + "/music-plays.json"
+    property string countPath: ""
     // ==== Cover cache (song path -> small preview image on disk) ====
     // Preview images (216 px, square) stay permanently in ~/.cache/quickshell/music-covers,
     // so they are only taken from the MP3 once per song. Small = decoded fast, so
@@ -203,11 +218,37 @@ QtObject {
         root.loadSongs();
     }
 
+    // "Mon Nov 23 15:23:20 2026" (mpc %mtime%, C locale) -> ms since epoch; 0 if unknown
+    function parseMtime(text) {
+        const m = /^\w{3} (\w{3}) +(\d+) (\d+):(\d+):(\d+) (\d{4})$/.exec(text.trim());
+        if (!m)
+            return 0;
+
+        const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(m[1]);
+        return month < 0 ? 0 : new Date(+m[6], month, +m[2], +m[3], +m[4], +m[5]).getTime();
+    }
+
     function parseSongs(rawText) {
         try {
-            const lines = rawText.split('\n').filter((l) => {
-                return l.trim();
-            });
+            // Lines are "<mtime>\t<path>"
+            const added = {
+            };
+            const lines = [];
+            for (const raw of rawText.split('\n')) {
+                if (!raw.trim())
+                    continue;
+
+                const tab = raw.indexOf("\t");
+                const path = tab < 0 ? raw : raw.substring(tab + 1);
+                if (!path)
+                    continue;
+
+                lines.push(path);
+                if (tab > 0)
+                    added[path] = root.parseMtime(raw.substring(0, tab));
+
+            }
+            root.songAdded = added;
             root.allSongs = lines.sort((a, b) => {
                 return a.localeCompare(b);
             });
@@ -219,6 +260,78 @@ QtObject {
             console.error("Error parsing songs:", e);
         }
         root.songsLoading = false;
+    }
+
+    // ==== Play counts ====
+    // 0 (never) to 1 (often and lately): as LauncherSearch.heat, halved every 30 days without playing
+    function heat(path) {
+        const u = plays[path];
+        if (!u || !u.n)
+            return 0;
+
+        const days = Math.max(0, (Date.now() - (u.t || 0)) / 8.64e+07);
+        return Math.min(1, Math.log2(1 + u.n) / 5) * Math.pow(0.5, days / 30);
+    }
+
+    // Heat of every played song right now (the picker takes it once per opening, so the grid does
+    // not reorder under the mouse while a song is counted)
+    function heatMap() {
+        const out = {
+        };
+        for (const path in plays)
+            out[path] = heat(path);
+        return out;
+    }
+
+    function setSort(mode) {
+        if (sortModes.indexOf(mode) === -1 || mode === sortMode)
+            return ;
+
+        sortMode = mode;
+        savePlays();
+    }
+
+    function cycleSort(dir) {
+        const n = sortModes.length;
+        setSort(sortModes[(sortModes.indexOf(sortMode) + (dir || 1) + n) % n]);
+    }
+
+    // A new track started: it counts once it played 30 s
+    function startPlayCount(path) {
+        countPath = path;
+        playCountTimer.restart();
+    }
+
+    function countPlay(path) {
+        if (!path || path !== nowPlaying || !playsLoaded)
+            return ;
+
+        const u = plays[path] || {
+            "n": 0,
+            "t": 0
+        };
+        // A shell restart sees the same song start again: not a second play
+        if (Date.now() - u.t < 120000)
+            return ;
+
+        const next = Object.assign({
+        }, plays);
+        next[path] = {
+            "n": u.n + 1,
+            "t": Date.now()
+        };
+        plays = next;
+        savePlays();
+    }
+
+    function savePlays() {
+        if (!playsLoaded)
+            return ;
+
+        playsView.setText(JSON.stringify({
+            "sort": sortMode,
+            "plays": plays
+        }) + "\n");
     }
 
     function requestCover(songPath) {
@@ -450,6 +563,7 @@ QtObject {
             return;
 
         queueState.lastPlayingId = songId;
+        root.startPlayCount(songPath);
         root.requestCover(songPath);
         if (songPath === root.announcePath && root.coverCache[songPath])
             root.announceNow(songPath);
@@ -479,10 +593,38 @@ QtObject {
 
     Component.onCompleted: availableProcess.running = true
 
+    property Timer playCountTimer: Timer {
+        interval: 30000
+        onTriggered: root.countPlay(root.countPath)
+    }
+
+    property FileView playsView: FileView {
+        path: root.playsFile
+        printErrors: false
+        atomicWrites: true
+        onLoaded: {
+            try {
+                const data = JSON.parse(text()) || {
+                };
+                root.plays = data.plays || {
+                };
+                if (root.sortModes.indexOf(data.sort) !== -1)
+                    root.sortMode = data.sort;
+
+            } catch (e) {
+                root.plays = {
+                };
+            }
+            root.playsLoaded = true;
+        }
+        // No file yet (first start): counting may begin
+        onLoadFailed: root.playsLoaded = true
+    }
+
     songsProcess: Process {
         // Quickshell starts before start.sh starts MPD: wait for it (max. 30 s), otherwise the empty
         // answer would stay as the song list until the next download
-        command: ["sh", "-c", "for i in $(seq 30); do mpc status >/dev/null 2>&1 && exec mpc listall; sleep 1; done"]
+        command: ["sh", "-c", "for i in $(seq 30); do mpc status >/dev/null 2>&1 && exec env LC_ALL=C mpc listall -f \"%mtime%\t%file%\"; sleep 1; done"]
 
         stdout: StdioCollector {
             onStreamFinished: root.parseSongs(text)

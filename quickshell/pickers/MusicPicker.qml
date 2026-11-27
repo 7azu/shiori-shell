@@ -13,9 +13,31 @@ Item {
 
     // Song list and cover cache come from the singleton.
     property var allSongs: MusicPickerState.allSongs
-    property var filteredSongs: allSongs.filter((song) => {
-        return song.toLowerCase().includes(PickerManager.searchText.toLowerCase());
+    // Play heat taken once per opening (MusicPickerState.heatMap), so a song being counted does not
+    // reorder the grid under the mouse
+    property var heatSnap: ({
     })
+    readonly property string sortMode: MusicPickerState.sortMode
+    // Search filters, the order comes from the sort row below the search bar. allSongs is sorted by
+    // name, so name is the tie-break everywhere (never played songs follow the played ones A-Z).
+    property var filteredSongs: {
+        const q = PickerManager.searchText.toLowerCase();
+        const list = allSongs.filter((song) => {
+            return song.toLowerCase().includes(q);
+        });
+        if (sortMode === "name")
+            return list;
+
+        const order = {
+        };
+        list.forEach((song, i) => {
+            order[song] = i;
+        });
+        const key = sortMode === "recent" ? MusicPickerState.songAdded : heatSnap;
+        return list.sort((a, b) => {
+            return ((key[b] || 0) - (key[a] || 0)) || (order[a] - order[b]);
+        });
+    }
     property var coverCache: MusicPickerState.coverCache
     property real lastMouseX: -1
     property real lastMouseY: -1
@@ -53,6 +75,7 @@ Item {
     property int introRun: 0
 
     function playIntro() {
+        heatSnap = MusicPickerState.heatMap();
         intro = true;
         introTimer.restart();
         introRun++;
@@ -205,6 +228,12 @@ Item {
             easing.type: Easing.BezierSpline
             easing.bezierCurve: Appearance.anim.curves.standard
         }
+    }
+
+    Shortcut {
+        sequence: "Alt+S"
+        enabled: root.tabActive && !root.addOpen
+        onActivated: MusicPickerState.cycleSort(1)
     }
 
     Shortcut {
@@ -564,6 +593,96 @@ Item {
                 easing.type: Easing.OutCubic
             }
         }
+    }
+
+    // ==== Sort row: quiet words below the search, a dot glides under the active one ====
+    Item {
+        id: sortRow
+
+        readonly property var modes: [{
+            "id": "top",
+            "label": "Most played"
+        }, {
+            "id": "name",
+            "label": "Name"
+        }, {
+            "id": "recent",
+            "label": "Recent"
+        }]
+        readonly property Item activeItem: sortRepeater.count > 0 ? sortRepeater.itemAt(Math.max(0, MusicPickerState.sortModes.indexOf(root.sortMode))) : null
+
+        anchors.horizontalCenter: searchBar.horizontalCenter
+        anchors.top: searchBar.bottom
+        anchors.topMargin: Theme.px(12)
+        width: sortWords.width
+        height: sortWords.height + Theme.px(8)
+        // Gives way to the queue (it opens in the same place) and the download view
+        opacity: root.tabIn * (1 - root.addT) * (1 - root.queueT)
+        visible: opacity > 0.01
+        enabled: !root.addOpen && !root.queueOpen
+
+        Row {
+            id: sortWords
+
+            spacing: Theme.px(20)
+
+            Repeater {
+                id: sortRepeater
+
+                model: sortRow.modes
+
+                Text {
+                    id: word
+
+                    required property var modelData
+                    readonly property bool active: root.sortMode === modelData.id
+
+                    text: modelData.label
+                    font.family: Theme.fontUi
+                    font.pixelSize: Theme.sizeLabel
+                    font.weight: active ? Font.Medium : Font.Normal
+                    color: active ? Theme.text : (wordMouse.containsMouse ? Theme.textDim : Theme.textFaint)
+
+                    MouseArea {
+                        id: wordMouse
+
+                        anchors.fill: parent
+                        anchors.margins: -Theme.px(6)
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: MusicPickerState.setSort(word.modelData.id)
+                    }
+
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: Appearance.anim.durations.fast
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        Rectangle {
+            width: Theme.px(4)
+            height: width
+            radius: width / 2
+            color: Theme.accent
+            y: sortWords.height + Theme.px(4)
+            x: sortRow.activeItem ? sortRow.activeItem.x + (sortRow.activeItem.width - width) / 2 : 0
+            visible: sortRow.activeItem !== null
+
+            Behavior on x {
+                Springy {
+                }
+
+            }
+
+        }
+
     }
 
     // ==== Song grid ====
