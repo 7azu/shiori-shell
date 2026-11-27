@@ -54,6 +54,7 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
   limits of Claude Code and Codex
 - Screen dropdown: a night light that follows sunset and sunrise (or your own times), and keep awake,
   which stops the automatic lock for a while
+- Calendar (a click on the clock) with the weather: now, the next days, and the day you select
 - Edit mode: right-click the logo on the left to hide or show icons. A hidden icon also turns its feature off.
 
 **Pickers** (full-screen, keyboard first)
@@ -226,6 +227,10 @@ or `"animated"` for the sky in the power menu, lock screen and workspace overvie
 - `"temperature"` is the color temperature at full warmth in Kelvin, `2000` to `6000` (default `4000`).
 - The sun times come from your time zone, nothing is asked on the network. For exact times put your place
   into `~/.config/quickshell-local/location.json` as `{"lat": 48.1, "lon": 11.6}`.
+
+**`weather`**: the weather in the calendar. `"place"` is a town or city (`"Tokyo"`); empty uses the main
+city of your time zone. `"unit"` is `"c"` or `"f"`, `"enabled": false` hides it. The forecast comes from
+Open-Meteo without an account: only the coordinates of the place are sent, and only when the calendar opens.
 
 **`keys`**: your keyboard shortcuts, written by the Shortcuts page. `"mod": "ALT"` makes Alt the main
 modifier, `"binds": { "terminal": "SUPER + Return", "trash": "" }` gives one shortcut other keys or

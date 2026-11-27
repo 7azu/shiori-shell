@@ -55,14 +55,19 @@ PanelWindow {
     readonly property real barMinWidth: 1000
     readonly property real screenW: panelWindow.width > 0 ? panelWindow.width : screen.width
     readonly property real barWidth: Math.min(screenW, Math.max(barMinWidth, Math.round(screenW * barRatio)))
-    readonly property real calBodyWidth: 500
+    // The calendar is a small board of cards: clock and month on the left (calMonthWidth), with the
+    // weather turned on a column of weather cards beside them (calSideWidth)
+    readonly property real calMonthWidth: 468
+    readonly property real calSideWidth: 252
+    readonly property real calGap: 12
+    readonly property real calBodyWidth: calMonthWidth + 2 * calPad + (WeatherState.enabled ? calGap + calSideWidth : 0)
     readonly property real calWidth: calBodyWidth + 2 * cornerR
     readonly property real calHeight: calClip.contentHeight + 24
     readonly property real calPad: 16
     // Week column as a narrow margin on the left; the same free on the right, so the 7 days sit exactly centered
     readonly property real wkW: 30
     readonly property real calCardPad: 10
-    readonly property real cellW: (calBodyWidth - 2 * calPad - 2 * calCardPad - 2 * wkW) / 7
+    readonly property real cellW: (calMonthWidth - 2 * calCardPad - 2 * wkW) / 7
     readonly property real cellH: 34
     readonly property real barContentOpacity: 1 - clamp01(morph / 0.12)
     readonly property real wT: smooth((morph - 0.05) / 0.55)
@@ -516,7 +521,9 @@ PanelWindow {
 
     }
 
-    // Month slide: fast start, long and soft ending (MD3 emphasized decelerate)
+    // Month slide: a short glide with a crossfade. A curve with a calmer start than the emphasized
+    // decelerate used before: in a recording that one made its largest step in the very first frame,
+    // which showed as a jerk, and its long tail crawled in fractions of a pixel.
     NumberAnimation {
         id: monthSlide
 
@@ -524,9 +531,8 @@ PanelWindow {
         property: "slideT"
         from: 0
         to: 1
-        duration: 480
-        easing.type: Easing.BezierSpline
-        easing.bezierCurve: Appearance.anim.curves.emphasizedDecelerate
+        duration: 400
+        easing.type: Easing.OutCubic
     }
 
     // Density of the icons by monitor width (2560px = 1, lower limit 0.65)

@@ -23,6 +23,11 @@
     "until": "07:00",
     "temperature": 4000
   },
+  "weather": {
+    "enabled": true,
+    "place": "",
+    "unit": "c"
+  },
   "translation": {
     "provider": "auto",
     "ollamaModel": "qwen2.5:7b",

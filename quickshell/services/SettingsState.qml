@@ -94,7 +94,7 @@ Singleton {
         "seal": "卓",
         "blurb": "What moves on the desktop, and how calm it is.",
         "file": "settings",
-        "words": "night light blue filter warm color temperature sunset sunrise hyprsunset redshift",
+        "words": "night light blue filter warm color temperature sunset sunrise hyprsunset redshift launcher search engine web weather forecast place city celsius fahrenheit polkit password administrator root pkexec authentication idle away lock dim darker monitors off screen off dpms standby suspend sleep hypridle",
         "groups": [{
             "title": "Night light",
             "footer": "Switched on and off in the bar (screen icon). Auto warms the screen slowly over half an hour after the start and cools it again before the end.",
@@ -130,6 +130,32 @@ Singleton {
                 "max": 6000,
                 "step": 100,
                 "unit": "K"
+            }]
+        }, {
+            "title": "Weather",
+            "footer": "Shown in the calendar (a click on the clock). The forecast comes from Open-Meteo: only the coordinates of the place are sent, and only when the calendar opens.",
+            "rows": [{
+                "key": "settings:weather.enabled",
+                "label": "Weather in the calendar",
+                "desc": "The weather now and for the next days, above the month.",
+                "type": "toggle"
+            }, {
+                "key": "settings:weather.place",
+                "label": "Place",
+                "desc": "A town or city, like Tokyo. Empty uses the main city of your time zone.",
+                "type": "text"
+            }, {
+                "key": "settings:weather.unit",
+                "label": "Unit",
+                "desc": "Temperatures in Celsius or Fahrenheit.",
+                "type": "choice",
+                "options": [{
+                    "value": "c",
+                    "label": "Celsius"
+                }, {
+                    "value": "f",
+                    "label": "Fahrenheit"
+                }]
             }]
         }, {
             "title": "Visualizer",
