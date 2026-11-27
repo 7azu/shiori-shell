@@ -174,231 +174,270 @@ Item {
         target: SettingsState
     }
 
-    Item {
-        id: list
+    // The rows scroll when the window is too low for all of them (small screens), so they never run
+    // under the "Advanced" row at the bottom; the selected row is kept in view
+    Flickable {
+        id: listView
 
         x: 0
         y: search.y + search.height + Theme.px(12)
         width: rail.width
-        height: rail.items.length > 0 ? rail.items[rail.items.length - 1].y + rail.rowH : 0
+        height: Math.max(0, footer.y - Theme.px(8) - y)
+        contentWidth: width
+        contentHeight: list.height
+        interactive: contentHeight > height
+        boundsBehavior: Flickable.StopAtBounds
+        clip: interactive
+        // Also when the window opens on a page further down, or its size changes
+        onHeightChanged: Qt.callLater(keepSelected)
+        onContentHeightChanged: Qt.callLater(keepSelected)
+        Component.onCompleted: Qt.callLater(keepSelected)
 
-        // Pill and ribbon in one layer: the intro fades/lifts them with their row, while their own
-        // Behaviors (y, opacity) keep working undisturbed
-        Item {
-            width: list.width
-            height: list.height
-            opacity: rail.markIn
+        function keepSelected() {
+            if (!interactive)
+                return ;
 
-            transform: Translate {
-                y: (1 - rail.markIn) * 12
-            }
+            const top = rail.selY - rail.rowH;
+            const bottom = rail.selY + 2 * rail.rowH;
+            if (top < contentY)
+                contentY = Math.max(0, top);
+            else if (bottom > contentY + height)
+                contentY = Math.min(contentHeight - height, bottom - height);
+        }
 
-            // Selection: the pill of all pickers ...
-            Rectangle {
-                x: rail.pad - Theme.px(6)
-                y: rail.selY + Theme.px(2)
-                width: rail.width - 2 * rail.pad + Theme.px(12)
-                height: rail.rowH - Theme.px(4)
-                radius: Theme.px(12)
-                color: Theme.tint(Theme.accent, 0.13)
-                opacity: rail.searching ? 0 : 1
-
-                Behavior on y {
-                    Springy {
-                    }
-
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Appearance.anim.durations.fast
-                    }
-
-                }
-
-            }
-
-            // ... and the bookmark ribbon, cut in at its lower end
-            Shape {
-                id: ribbon
-
-                readonly property real w: Theme.px(7)
-                readonly property real h: Theme.px(15)
-
-                x: rail.pad + Theme.px(4)
-                y: rail.selY + Math.round((rail.rowH - h) / 2)
-                width: w
-                height: h
-                opacity: rail.searching ? 0 : 1
-                preferredRendererType: Shape.CurveRenderer
-
-                ShapePath {
-                    strokeWidth: 0
-                    strokeColor: "transparent"
-                    fillColor: Theme.accent
-                    startX: 0
-                    startY: 0
-
-                    PathLine {
-                        x: ribbon.w
-                        y: 0
-                    }
-
-                    PathLine {
-                        x: ribbon.w
-                        y: ribbon.h
-                    }
-
-                    PathLine {
-                        x: ribbon.w / 2
-                        y: ribbon.h - ribbon.w * 0.55
-                    }
-
-                    PathLine {
-                        x: 0
-                        y: ribbon.h
-                    }
-
-                    PathLine {
-                        x: 0
-                        y: 0
-                    }
-
-                }
-
-                Behavior on y {
-                    Springy {
-                    }
-
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Appearance.anim.durations.fast
-                    }
-
-                }
-
+        Connections {
+            target: rail
+            function onSelYChanged() {
+                listView.keepSelected();
             }
 
         }
 
-        Repeater {
-            model: rail.items
+        Item {
+            id: list
 
+            width: rail.width
+            height: rail.items.length > 0 ? rail.items[rail.items.length - 1].y + rail.rowH : 0
+
+            // Pill and ribbon in one layer: the intro fades/lifts them with their row, while their own
+            // Behaviors (y, opacity) keep working undisturbed
             Item {
-                id: entry
-
-                required property var modelData
-                required property int index
-                readonly property bool isPage: modelData.kind === "page"
-                readonly property bool selected: isPage && !rail.searching && modelData.sec.id === SettingsState.section
-                property real enter: 1
-
-                y: modelData.y
                 width: list.width
-                height: isPage ? rail.rowH : rail.groupH
-                opacity: enter
-                Component.onCompleted: {
-                    if (rail.intro) {
-                        enter = 0;
-                        entryEnter.start();
-                    }
-                }
+                height: list.height
+                opacity: rail.markIn
 
                 transform: Translate {
-                    y: (1 - entry.enter) * 12
+                    y: (1 - rail.markIn) * 12
                 }
 
-                SequentialAnimation {
-                    id: entryEnter
+                // Selection: the pill of all pickers ...
+                Rectangle {
+                    x: rail.pad - Theme.px(6)
+                    y: rail.selY + Theme.px(2)
+                    width: rail.width - 2 * rail.pad + Theme.px(12)
+                    height: rail.rowH - Theme.px(4)
+                    radius: Theme.px(12)
+                    color: Theme.tint(Theme.accent, 0.13)
+                    opacity: rail.searching ? 0 : 1
 
-                    PauseAnimation {
-                        duration: rail.introDelay(entry.index)
-                    }
-
-                    NumberAnimation {
-                        target: entry
-                        property: "enter"
-                        to: 1
-                        duration: 460
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Appearance.anim.curves.outQuint
-                    }
-
-                }
-
-                // Group: number, title, a hairline to the edge
-                Item {
-                    visible: !entry.isPage
-                    anchors.fill: parent
-
-                    Text {
-                        id: groupText
-
-                        x: rail.pad
-                        anchors.bottom: parent.bottom
-                        anchors.bottomMargin: Theme.px(7)
-                        text: entry.isPage ? "" : "0" + (entry.modelData.index + 1) + "   " + entry.modelData.title.toUpperCase()
-                        color: Theme.textFaint
-                        font.family: Theme.fontUi
-                        font.features: Theme.tabular
-                        font.pixelSize: Theme.sizeMicro
-                        font.bold: true
-                        font.letterSpacing: Theme.microSpacing
-                    }
-
-                    Rectangle {
-                        anchors.left: groupText.right
-                        anchors.leftMargin: Theme.px(10)
-                        anchors.right: parent.right
-                        anchors.rightMargin: rail.pad
-                        anchors.verticalCenter: groupText.verticalCenter
-                        height: 1
-                        color: Theme.separator
-                    }
-
-                }
-
-                // Page: name, seal
-                Item {
-                    visible: entry.isPage
-                    anchors.fill: parent
-
-                    Text {
-                        x: rail.pad + Theme.px(20)
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: entry.isPage ? entry.modelData.sec.name : ""
-                        color: entry.selected || pageMouse.containsMouse ? Theme.text : Theme.textDim
-                        font.family: Theme.fontUi
-                        font.pixelSize: Theme.sizeLead
-                        font.weight: entry.selected ? Font.DemiBold : Font.Normal
-
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: Appearance.anim.durations.fast
-                            }
-
+                    Behavior on y {
+                        Springy {
                         }
 
                     }
 
-                    Seal {
-                        anchors.right: parent.right
-                        anchors.rightMargin: rail.pad + Theme.px(2)
-                        anchors.verticalCenter: parent.verticalCenter
-                        size: Theme.px(21)
-                        kanji: entry.isPage ? entry.modelData.sec.seal : ""
-                        active: entry.selected
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Appearance.anim.durations.fast
+                        }
+
                     }
 
-                    MouseArea {
-                        id: pageMouse
+                }
 
+                // ... and the bookmark ribbon, cut in at its lower end
+                Shape {
+                    id: ribbon
+
+                    readonly property real w: Theme.px(7)
+                    readonly property real h: Theme.px(15)
+
+                    x: rail.pad + Theme.px(4)
+                    y: rail.selY + Math.round((rail.rowH - h) / 2)
+                    width: w
+                    height: h
+                    opacity: rail.searching ? 0 : 1
+                    preferredRendererType: Shape.CurveRenderer
+
+                    ShapePath {
+                        strokeWidth: 0
+                        strokeColor: "transparent"
+                        fillColor: Theme.accent
+                        startX: 0
+                        startY: 0
+
+                        PathLine {
+                            x: ribbon.w
+                            y: 0
+                        }
+
+                        PathLine {
+                            x: ribbon.w
+                            y: ribbon.h
+                        }
+
+                        PathLine {
+                            x: ribbon.w / 2
+                            y: ribbon.h - ribbon.w * 0.55
+                        }
+
+                        PathLine {
+                            x: 0
+                            y: ribbon.h
+                        }
+
+                        PathLine {
+                            x: 0
+                            y: 0
+                        }
+
+                    }
+
+                    Behavior on y {
+                        Springy {
+                        }
+
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Appearance.anim.durations.fast
+                        }
+
+                    }
+
+                }
+
+            }
+
+            Repeater {
+                model: rail.items
+
+                Item {
+                    id: entry
+
+                    required property var modelData
+                    required property int index
+                    readonly property bool isPage: modelData.kind === "page"
+                    readonly property bool selected: isPage && !rail.searching && modelData.sec.id === SettingsState.section
+                    property real enter: 1
+
+                    y: modelData.y
+                    width: list.width
+                    height: isPage ? rail.rowH : rail.groupH
+                    opacity: enter
+                    Component.onCompleted: {
+                        if (rail.intro) {
+                            enter = 0;
+                            entryEnter.start();
+                        }
+                    }
+
+                    transform: Translate {
+                        y: (1 - entry.enter) * 12
+                    }
+
+                    SequentialAnimation {
+                        id: entryEnter
+
+                        PauseAnimation {
+                            duration: rail.introDelay(entry.index)
+                        }
+
+                        NumberAnimation {
+                            target: entry
+                            property: "enter"
+                            to: 1
+                            duration: 460
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Appearance.anim.curves.outQuint
+                        }
+
+                    }
+
+                    // Group: number, title, a hairline to the edge
+                    Item {
+                        visible: !entry.isPage
                         anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: SettingsState.jump(entry.modelData.sec.id, "")
+
+                        Text {
+                            id: groupText
+
+                            x: rail.pad
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: Theme.px(7)
+                            text: entry.isPage ? "" : "0" + (entry.modelData.index + 1) + "   " + entry.modelData.title.toUpperCase()
+                            color: Theme.textFaint
+                            font.family: Theme.fontUi
+                            font.features: Theme.tabular
+                            font.pixelSize: Theme.sizeMicro
+                            font.bold: true
+                            font.letterSpacing: Theme.microSpacing
+                        }
+
+                        Rectangle {
+                            anchors.left: groupText.right
+                            anchors.leftMargin: Theme.px(10)
+                            anchors.right: parent.right
+                            anchors.rightMargin: rail.pad
+                            anchors.verticalCenter: groupText.verticalCenter
+                            height: 1
+                            color: Theme.separator
+                        }
+
+                    }
+
+                    // Page: name, seal
+                    Item {
+                        visible: entry.isPage
+                        anchors.fill: parent
+
+                        Text {
+                            x: rail.pad + Theme.px(20)
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: entry.isPage ? entry.modelData.sec.name : ""
+                            color: entry.selected || pageMouse.containsMouse ? Theme.text : Theme.textDim
+                            font.family: Theme.fontUi
+                            font.pixelSize: Theme.sizeLead
+                            font.weight: entry.selected ? Font.DemiBold : Font.Normal
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: Appearance.anim.durations.fast
+                                }
+
+                            }
+
+                        }
+
+                        Seal {
+                            anchors.right: parent.right
+                            anchors.rightMargin: rail.pad + Theme.px(2)
+                            anchors.verticalCenter: parent.verticalCenter
+                            size: Theme.px(21)
+                            kanji: entry.isPage ? entry.modelData.sec.seal : ""
+                            active: entry.selected
+                        }
+
+                        MouseArea {
+                            id: pageMouse
+
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: SettingsState.jump(entry.modelData.sec.id, "")
+                        }
+
                     }
 
                 }
@@ -411,6 +450,8 @@ Item {
 
     // Rows that are rarely needed
     Item {
+        id: footer
+
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
