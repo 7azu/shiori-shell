@@ -48,7 +48,7 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 ## Features
 
 **Bar**
-- Workspaces, active window, clock with calendar, notifications
+- Workspaces, active window, clock with calendar, notifications (grouped by app, kept across a restart, a warning when the battery runs low)
 - Drawer with shortcuts to the pickers (clipboard, trash, Wi-Fi, Bluetooth, apps, language tool)
 - Tray (right-click the logo): the programs that keep running in the background (Steam, chat apps) as icons
   in the bar. A click brings one up, a right-click opens its menu; "Tray" in the launcher lists them for the

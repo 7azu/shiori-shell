@@ -28,3 +28,4 @@ TrayDrawer 1.0 TrayDrawer.qml
 TrayContextMenu 1.0 TrayContextMenu.qml
 WeatherGlyph 1.0 WeatherGlyph.qml
 WeatherColumn 1.0 WeatherColumn.qml
+NotificationGroup 1.0 NotificationGroup.qml

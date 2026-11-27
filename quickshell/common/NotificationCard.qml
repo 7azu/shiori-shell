@@ -183,7 +183,9 @@ Item {
         width: parent.width
         height: card.toast ? Math.max(74, row.height + 26) : row.height + 24
         radius: card.toast ? 18 : 14
-        color: card.toast ? WalColors.withAlpha(WalColors.color0, 1) : WalColors.withAlpha(WalColors.color7, card.hovered ? 0.08 : 0.045)
+        // In the center: opaque, in the color the see-through card would have on the panel. So cards
+        // stacked in a group cover each other instead of showing two texts at once.
+        color: card.toast ? WalColors.withAlpha(WalColors.color0, 1) : Qt.tint(WalColors.color0, WalColors.withAlpha(WalColors.color7, card.hovered ? 0.08 : 0.045))
         border.width: card.toast ? 1 : 0
         border.color: WalColors.withAlpha(WalColors.color7, card.hovered ? 0.16 : 0.08)
         clip: true

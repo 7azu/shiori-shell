@@ -20,6 +20,39 @@ Item {
     property int introRun: 0
     // Clear all: cards fly out staggered, afterwards they are really deleted
     property bool clearing: false
+    // Notifications grouped by app, newest group first (NotificationState.items is newest first, so the
+    // first time an app turns up decides the place of its group)
+    readonly property var groups: {
+        const map = {};
+        const keys = [];
+        const all = NotificationState.items;
+        for (let i = 0; i < all.length; i++) {
+            const k = all[i].appName || "Notification";
+            if (!map[k]) {
+                map[k] = [];
+                keys.push(k);
+            }
+            map[k].push(all[i]);
+        }
+        return {
+            "map": map,
+            "keys": keys
+        };
+    }
+    // Groups fanned out by a click; folded again when the center closes
+    property var openGroups: ({
+    })
+
+    function groupItems(key) {
+        return groups.map[key] || [];
+    }
+
+    function toggleGroup(key) {
+        const next = Object.assign({
+        }, openGroups);
+        next[key] = !next[key];
+        openGroups = next;
+    }
 
     function clearAll() {
         if (clearing || NotificationState.count === 0)
@@ -41,7 +74,9 @@ Item {
     onShownChanged: {
         if (shown)
             introRun++;
-
+        else
+            openGroups = {
+        };
     }
 
     Timer {
@@ -517,6 +552,22 @@ Item {
             // fading cards, the height would then get a new target every frame.
             readonly property bool listSettled: !historyRemove.running && !historyDisplaced.running
 
+            // Mouse wheel: where the list is gliding to (see wheelBy), and how far one notch goes
+            property real glideTo: 0
+            readonly property real wheelStep: 110
+
+            function clampY(y) {
+                const minY = historyList.originY;
+                return Math.max(minY, Math.min(Math.max(minY, minY + historyList.contentHeight - historyList.height), y));
+            }
+
+            // Wheel notches (down = positive). Several notches add up to one glide instead of
+            // restarting it, so fast scrolling stays even.
+            function wheelBy(notches) {
+                glideTo = clampY((glide.running ? glideTo : historyList.contentY) + notches * wheelStep);
+                glide.running = true;
+            }
+
             height: NotificationState.count > 0 ? Math.min(panel.maxListH, listSettled ? Math.max(historyList.contentHeight, historyList.contentItem.childrenRect.height) : historyList.contentHeight) : emptyState.height
 
             Behavior on height {
@@ -536,15 +587,17 @@ Item {
                 interactive: contentHeight > height
                 boundsBehavior: Flickable.StopAtBounds
                 visible: NotificationState.count > 0
+                // Dragging or flicking takes over from a wheel glide
+                onMovementStarted: glide.running = false
 
+                // One entry per app: a single card or a stack (bar/NotificationGroup)
                 model: ScriptModel {
-                    values: [...NotificationState.list].reverse()
+                    values: panel.groups.keys
                 }
 
-                delegate: NotificationCard {
+                delegate: NotificationGroup {
                     width: historyList.width
-                    introRun: panel.introRun
-                    clearing: panel.clearing
+                    host: panel
                 }
 
                 add: Transition {
@@ -593,6 +646,86 @@ Item {
                         properties: "opacity,scale"
                         to: 1
                         duration: 200
+                    }
+
+                }
+
+            }
+
+            // Mouse wheel: the list glides to its new place. Left to the ListView, one notch moved it by
+            // about 19 px within a single frame and then stood still (measured in a recording), which
+            // looked like stutter. Own MouseArea that only takes the wheel, so hover, clicks and swipes
+            // still reach the cards; a WheelHandler for PointerDevice.Mouse never fires with some mice.
+            MouseArea {
+                anchors.fill: historyList
+                acceptedButtons: Qt.NoButton
+                enabled: historyList.visible && historyList.interactive
+                onWheel: (wheel) => {
+                    // A touchpad (it reports a scroll phase) keeps the native, finger-following scroll
+                    if (wheel.phase !== Qt.NoScrollPhase) {
+                        glide.running = false;
+                        wheel.accepted = false;
+                        return ;
+                    }
+                    if (wheel.angleDelta.y !== 0)
+                        listBox.wheelBy(-wheel.angleDelta.y / 120);
+
+                }
+            }
+
+            // Closes a fixed share of the remaining distance per time: fast start, soft landing, and a
+            // new notch just moves the goal.
+            FrameAnimation {
+                id: glide
+
+                running: false
+                onTriggered: {
+                    const goal = listBox.clampY(listBox.glideTo);
+                    const rest = goal - historyList.contentY;
+                    if (Math.abs(rest) < 0.5) {
+                        historyList.contentY = Math.round(goal);
+                        running = false;
+                        return ;
+                    }
+                    historyList.contentY += rest * (1 - Math.exp(-Math.min(frameTime, 0.05) * 13));
+                }
+            }
+
+            // Soft edges where the list goes on: cards dissolve into the panel instead of being cut off
+            // in the middle. Only on the side that has more to show.
+            Repeater {
+                model: 2
+
+                delegate: Rectangle {
+                    id: edgeFade
+
+                    required property int index
+                    readonly property bool lower: index === 1
+
+                    width: listBox.width
+                    height: 44
+                    y: lower ? listBox.height - height : 0
+                    visible: historyList.visible
+                    opacity: historyList.interactive && !(lower ? historyList.atYEnd : historyList.atYBeginning) ? 1 : 0
+
+                    gradient: Gradient {
+                        GradientStop {
+                            position: edgeFade.lower ? 0 : 1
+                            color: WalColors.withAlpha(WalColors.color0, 0)
+                        }
+
+                        GradientStop {
+                            position: edgeFade.lower ? 1 : 0
+                            color: WalColors.withAlpha(WalColors.color0, 1)
+                        }
+
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Appearance.anim.durations.fast
+                        }
+
                     }
 
                 }
