@@ -49,6 +49,7 @@ Singleton {
 
     onEnabledChanged: {
         if (enabled) {
+            registerTries = 0;
             takeover.running = true;
         } else {
             handedOver = false;
@@ -74,10 +75,7 @@ Singleton {
         id: takeover
 
         command: [Qt.resolvedUrl("../scripts/polkit_agent.sh").toString().replace("file://", ""), "takeover"]
-        onExited: {
-            root.registerTries = 0;
-            root.handedOver = true;
-        }
+        onExited: root.handedOver = true
     }
 
     Process {
@@ -97,15 +95,16 @@ Singleton {
     }
 
     // The old agent may need a moment to let go: if registering fails, try again a few times
+    // Not registered: another agent answers. On a fresh login hyprpolkitagent can start a moment after
+    // the handover (graphical-session.target pulls it in, measured ~1 s late), so hand over again
+    // (stops it) and register anew; a few tries.
     Timer {
         interval: 1500
         running: root.enabled && root.handedOver && !!root.agent && !root.agent.isRegistered && root.registerTries < 5
         onTriggered: {
             root.registerTries++;
-            agentLoader.active = false;
-            agentLoader.active = Qt.binding(() => {
-                return root.enabled && root.handedOver;
-            });
+            root.handedOver = false;
+            takeover.running = true;
         }
     }
 

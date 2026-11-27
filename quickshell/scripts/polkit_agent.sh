@@ -27,6 +27,12 @@ takeover)
         systemd-run --user --quiet --collect --unit="$WATCH" \
             --description="Start hyprpolkitagent once the Quickshell password prompt is gone" \
             sh -c "tail --pid=$shell_pid -f /dev/null; systemctl --user restart $AGENT"
+        # Right after login graphical-session.target may still have a start job queued for the agent:
+        # wait for it (up to 3 s), or the agent comes up after it was stopped and takes the place
+        for _ in $(seq 30); do
+            systemctl --user list-jobs --no-legend 2>/dev/null | grep -q " $AGENT " || break
+            sleep 0.1
+        done
         systemctl --user stop "$AGENT" 2>/dev/null
     fi
     exit 0
