@@ -23,5 +23,8 @@ BarDrawer 1.0 BarDrawer.qml
 BarIconGroup 1.0 BarIconGroup.qml
 SettingsButton 1.0 SettingsButton.qml
 ScreenToggle 1.0 ScreenToggle.qml
+TrayPanel 1.0 TrayPanel.qml
+TrayDrawer 1.0 TrayDrawer.qml
+TrayContextMenu 1.0 TrayContextMenu.qml
 WeatherGlyph 1.0 WeatherGlyph.qml
 WeatherColumn 1.0 WeatherColumn.qml

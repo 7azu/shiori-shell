@@ -55,6 +55,7 @@ keys.bind("settings",      "MOD + comma", hl.dsp.global("quickshell:toggle_setti
 -- no keys by default: set them on the Shortcuts page if you want them
 keys.bind("night_light",   "",            hl.dsp.global("quickshell:toggle_night_light"), "Quickshell: Toggle night light")
 keys.bind("keep_awake",    "",            hl.dsp.global("quickshell:toggle_keep_awake"), "Quickshell: Toggle keep awake")
+keys.bind("tray",          "",            hl.dsp.global("quickshell:toggle_tray"), "Quickshell: Open tray")
 -- lock screen directly (MOD + L is focus right); lock.sh itself makes sure only one runs (flock)
 keys.bind("lock",          "MOD + CTRL + L", hl.dsp.exec_cmd(scripts .. "lock.sh"), "Quickshell: Lock screen")
 

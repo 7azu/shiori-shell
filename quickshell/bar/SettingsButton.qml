@@ -2,9 +2,10 @@ import "../services"
 import QtQuick
 
 // Bar icon for the settings window (settings/SettingsWindow.qml, state services/SettingsState): the gear
-// on the left of the bar, between the logo (with its drawer) and the shortcuts button (MainBar.qml).
-// It opens no dropdown but a window, so it is not part of an icon group and draws its own tile, the same
-// as the shortcuts button next to it. Lit while the window is open.
+// on the left of the bar, between the logo (with its drawer) and the window title (MainBar.qml).
+// It opens no dropdown but a window, so it is not part of an icon group. At rest it stands freely like
+// the logo (a tile of its own looked lost between the drawer and tray pills); hover or an open window
+// give it a round tile.
 // Hover: the gear gets a push and then keeps turning slowly. When the mouse leaves it runs out and stops
 // on a tooth (the gear looks the same every 60°), so the resting picture never changes.
 BarIcon {
@@ -65,9 +66,9 @@ BarIcon {
         anchors.centerIn: parent
         width: root.buttonWidth
         height: root.size
-        radius: Theme.radiusS
-        color: root.active || root.hovered ? Theme.accentSoft : Theme.card
-        border.color: Theme.stroke
+        radius: height / 2
+        color: root.active || root.hovered ? Theme.accentSoft : "transparent"
+        border.width: 0
 
         Behavior on color {
             ColorAnimation {

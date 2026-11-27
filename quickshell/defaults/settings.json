@@ -23,6 +23,9 @@
     "until": "07:00",
     "temperature": 4000
   },
+  "tray": {
+    "hidden": []
+  },
   "polkit": {
     "ownDialog": true
   },

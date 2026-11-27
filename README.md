@@ -50,6 +50,9 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 **Bar**
 - Workspaces, active window, clock with calendar, notifications
 - Drawer with shortcuts to the pickers (clipboard, trash, Wi-Fi, Bluetooth, apps, language tool)
+- Tray (right-click the logo): the programs that keep running in the background (Steam, chat apps) as icons
+  in the bar. A click brings one up, a right-click opens its menu; "Tray" in the launcher lists them for the
+  keyboard
 - Dropdowns for audio, system stats (CPU, GPU, RAM, disks), VPN, battery, sync, and the usage
   limits of Claude Code and Codex
 - Screen dropdown: a night light that follows sunset and sunrise (or your own times), and keep awake,
@@ -182,7 +185,7 @@ These are the defaults. The settings window has a page **Shortcuts**: click a sh
 keys, `Backspace` removes it, and the main modifier can be switched from Super to Alt for all of them. A
 shortcut that is already taken says by what and offers to replace it. Groups (`Super + 1 … 0`, focus and
 move keys) and the special keys follow the main modifier but are not changed one by one. "Toggle night
-light" and "Toggle keep awake" have no keys at first; give them some on that page if you want them.
+light", "Toggle keep awake" and "Open tray" have no keys at first; give them some on that page if you want them.
 
 All bindings are in `hypr/modules/keybindings.lua`. More shell actions (Wi-Fi, Bluetooth, airplane mode,
 moving the bar) can be bound with `hl.dsp.global("quickshell:<name>")`; the names are listed in
@@ -258,6 +261,9 @@ turns it off. The names are the first argument of each `keys.bind` in `hypr/modu
   (without a passphrase it is used directly and no passphrase window appears; with one it is unlocked in the agent).
 
 **`icons`**: your own icons for apps or windows (files in `~/.config/shiori-shell/icons`).
+
+**`tray`**: `"hidden"` lists tray programs you do not want to see, by their id (`["Fcitx"]`). The tray panel
+writes it: `H` or the last line of a program's menu hides it, the chip "hidden" brings it back.
 
 **`translation`**: how the language tool translates book chapters and subtitle lines into English, from
 any language. Set `provider` to one of these, or leave it on `auto`, which takes the first one that is ready

@@ -109,6 +109,63 @@ ShellRoot {
         interval: 1000
     }
 
+    // Tray panel of the bar (no key by default)
+    GlobalShortcut {
+        name: "toggle_tray"
+        onPressed: TrayState.toggle()
+    }
+
+    IpcHandler {
+        target: "tray"
+        function toggle(): void { TrayState.toggle(); }
+        // Bring a program's window up, as a click on its icon does
+        function open(id: string): void {
+            const item = TrayState.all.find((i) => {
+                return i.id === id;
+            });
+            if (item)
+                TrayState.open(item);
+
+        }
+        // "Open" of its context menu (not called "show": "qs ipc show" is a command of its own)
+        function reveal(id: string): void {
+            const item = TrayState.all.find((i) => {
+                return i.id === id;
+            });
+            if (item)
+                TrayState.show(item);
+
+        }
+        // The context menu (Open / Exit) of one program below the point x (for tests); "" closes it
+        function menu(id: string, x: int): void {
+            const item = TrayState.all.find((i) => {
+                return i.id === id;
+            });
+            if (item)
+                TrayState.openMenu(item, x);
+            else
+                TrayState.closeMenu();
+        }
+        // The programs in the tray as JSON: id, name, whether a click opens the menu, whether it is hidden
+        function list(): string {
+            return JSON.stringify(TrayState.all.map((item) => {
+                return {
+                    "id": item.id,
+                    "name": TrayState.nameOf(item),
+                    "activates": TrayState.menuOnly.indexOf(item.id) === -1,
+                    "openVia": (TrayState.findEntry(item, TrayState.openWords) || ({
+                    })).text || "",
+                    "exitVia": (TrayState.findEntry(item, TrayState.exitWords) || ({
+                    })).text || "",
+                    "settingsVia": (TrayState.findEntry(item, TrayState.settingsWords, true) || ({
+                    })).text || "",
+                    "service": TrayState.isService(item),
+                    "hidden": TrayState.isHidden(item)
+                };
+            }));
+        }
+    }
+
     // Night light and keep awake (bar icon "screen"): no keys by default, bind them on the Shortcuts page
     GlobalShortcut {
         name: "toggle_night_light"
@@ -338,6 +395,8 @@ ShellRoot {
             required property var modelData
 
             MainBar {
+                id: mainBar
+
                 screen: modelData
             }
 
@@ -351,6 +410,11 @@ ShellRoot {
             }
 
             VolumeTriggerZone {
+                screen: modelData
+            }
+
+            // Right-click on a program in the tray drawer of the bar
+            TrayContextMenu {
                 screen: modelData
             }
 

@@ -418,7 +418,7 @@ Singleton {
             "rows": [feature("sync", "Sync", "Git folders, cloud drives and your own sync commands.", []), feature("claude", "AI usage", "Limits and tokens of Claude Code and Codex.", []), feature("vpn", "VPN", "Connection, location and throughput.", ["nmcli"]), feature("audio", "Audio", "What is playing, volume and outputs.", []), feature("stats", "System stats", "Processor, graphics, memory and disk.", []), feature("screen", "Screen", "Night light and keep awake.", []), feature("battery", "Battery", "Charge and power.", ["upower"])]
         }, {
             "title": "Fixed places",
-            "rows": [feature("settings", "Settings", "The gear next to the logo that opens this window. Super + , works without it.", []), feature("power", "Power menu", "At the far right: shut down, restart, lock, log out.", [])]
+            "rows": [feature("tray", "Tray", "The programs that keep running in the background (Steam, chat apps) as icons right of the gear. Click one to bring it up, right-click it for its menu.", []), feature("settings", "Settings", "The gear next to the logo that opens this window. Super + , works without it.", []), feature("power", "Power menu", "At the far right: shut down, restart, lock, log out.", [])]
         }]
     }, {
         // The rows come from Hyprland's config at run time: groupsOf() asks services/Keybinds

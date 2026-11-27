@@ -1,7 +1,6 @@
 import "../services"
 import "../common/Format.js" as Fmt
 import QtQuick
-import QtQuick.Controls as Controls
 import QtQuick.Effects
 import QtQuick.Shapes
 import Quickshell
@@ -15,7 +14,8 @@ PanelWindow {
     property alias commitTimer: commitTimer
     property bool calendarOpen: false
     property bool monitorsOpen: false
-    // Target of the morph ("calendar" | "monitors"); stays while collapsing,
+    property bool trayOpen: false
+    // Target of the morph ("calendar" | "monitors" | "tray" | "notifications"); stays while collapsing,
     // so the shape does not jump in the middle of the animation.
     property string panelKind: "calendar"
     // Notification center: the state lives in NotificationState (toasts/shortcut also open it)
@@ -24,7 +24,7 @@ PanelWindow {
     property bool notifShowedBar: false
     // The same for the calendar by shortcut (SUPER+K)
     property bool calShowedBar: false
-    readonly property bool panelOpen: calendarOpen || monitorsOpen || notifOpen
+    readonly property bool panelOpen: calendarOpen || monitorsOpen || trayOpen || notifOpen
     property bool startupDone: false
     // Sliding the bar in/out: 0 = above out of the picture, 1 = there. Only moved, not faded. The surface
     // stays meanwhile (before margins.top was animated = a layer reconfigure per frame), the content glides
@@ -40,6 +40,11 @@ PanelWindow {
     property real editReveal: editMode ? 1 : 0
     property bool drawerWasOpen: false
     property real revealT: drawerOpen ? 1 : 0
+    // The tray programs as icons right of the gear, always there while the tray is on and has programs
+    // (bar/TrayDrawer.qml; until 2026-11-27 a second drawer behind a right-click on the logo)
+    property real trayRevealT: TrayState.enabled && TrayState.count > 0 ? 1 : 0
+    // How far the picker drawer is out, for the gaps around it
+    readonly property real drawerSpan: clamp01(revealT)
     property date now: new Date()
     property int viewYear: new Date().getFullYear()
     property int viewMonth: new Date().getMonth()
@@ -75,6 +80,9 @@ PanelWindow {
     readonly property real monBodyWidth: 520
     readonly property real monWidth: monBodyWidth + 2 * cornerR
     readonly property real monHeight: monClip.contentHeight + 24
+    readonly property real trayBodyWidth: 400
+    readonly property real trayWidth: trayBodyWidth + 2 * cornerR
+    readonly property real trayHeight: trayClip.contentHeight + 24
     readonly property real notifBodyWidth: 480
     readonly property real notifWidth: notifBodyWidth + 2 * cornerR
     readonly property real notifHeight: notifPanel.implicitHeight + 34
@@ -89,7 +97,7 @@ PanelWindow {
     // the invisible center grow before -> the bar squashed for one frame; with a fixed height that is gone.
     // Shadow (RectangularShadow below): blur 19 + offset 3 -> ~22 px below the shape, with some reserve
     readonly property real shadowPad: 28
-    readonly property real surfaceNeed: Math.max(barHeight, calHeight, monHeight, notifPanel.maxHeight + 34) + shadowPad
+    readonly property real surfaceNeed: Math.max(barHeight, calHeight, monHeight, trayClip.maxListH + 110, notifPanel.maxHeight + 34) + shadowPad
     property real surfaceH: Math.ceil(surfaceNeed)
     onSurfaceNeedChanged: {
         // Only grow, never shrink; the assignment also breaks the binding
@@ -111,6 +119,7 @@ PanelWindow {
     readonly property real panelContentOpacity: clamp01((morph - 0.8) / 0.2)
     readonly property real calContentOpacity: panelContentOpacity * kindVisible("calendar")
     readonly property real monContentOpacity: panelContentOpacity * kindVisible("monitors")
+    readonly property real trayContentOpacity: panelContentOpacity * kindVisible("tray")
     readonly property real notifContentOpacity: panelContentOpacity * kindVisible("notifications")
     // Monitor panel: chosen monitor (while the mini bar glides there), keyboard/hover index
     property string pendingBarScreen: ""
@@ -159,11 +168,11 @@ PanelWindow {
     }
 
     function kindWidth(k) {
-        return k === "monitors" ? monWidth : (k === "notifications" ? notifWidth : calWidth);
+        return k === "monitors" ? monWidth : (k === "tray" ? trayWidth : (k === "notifications" ? notifWidth : calWidth));
     }
 
     function kindHeight(k) {
-        return k === "monitors" ? monHeight : (k === "notifications" ? notifHeight : calHeight);
+        return k === "monitors" ? monHeight : (k === "tray" ? trayHeight : (k === "notifications" ? notifHeight : calHeight));
     }
 
     // Visibility of a panel content during a switch (without a switch: only the active one)
@@ -189,6 +198,7 @@ PanelWindow {
             return ;
 
         monitorsOpen = false;
+        trayOpen = false;
         NotificationState.close();
         panelKind = "calendar";
         calendarOpen = !calendarOpen;
@@ -199,14 +209,28 @@ PanelWindow {
             return ;
 
         calendarOpen = false;
+        trayOpen = false;
         NotificationState.close();
         panelKind = "monitors";
         monitorsOpen = !monitorsOpen;
     }
 
+    function toggleTray() {
+        // Tray switched off in the settings: no panel
+        if (!BarState.barVisible || !TrayState.enabled)
+            return ;
+
+        calendarOpen = false;
+        monitorsOpen = false;
+        NotificationState.close();
+        panelKind = "tray";
+        trayOpen = !trayOpen;
+    }
+
     function closePanels() {
         calendarOpen = false;
         monitorsOpen = false;
+        trayOpen = false;
         NotificationState.close();
     }
 
@@ -520,6 +544,11 @@ PanelWindow {
             PickerManager.close();
 
     }
+    onTrayOpenChanged: {
+        if (trayOpen && PickerManager.isOpen("apps"))
+            PickerManager.close();
+
+    }
 
     // Month slide: a short glide with a crossfade. A curve with a calmer start than the emphasized
     // decelerate used before: in a recording that one made its largest step in the very first frame,
@@ -588,6 +617,7 @@ PanelWindow {
                 notifHideTimer.stop();
                 panelWindow.calendarOpen = false;
                 panelWindow.monitorsOpen = false;
+                panelWindow.trayOpen = false;
                 panelWindow.setEditMode(false);
                 panelWindow.panelKind = "notifications";
                 if (PickerManager.isOpen("apps"))
@@ -604,6 +634,15 @@ PanelWindow {
         }
 
         target: NotificationState
+    }
+
+    // Tray by shortcut or from the launcher (the bar has to be there for it)
+    Connections {
+        function onToggleRequested() {
+            panelWindow.toggleTray();
+        }
+
+        target: TrayState
     }
 
     // Calendar by shortcut: like the notification center, a hidden bar slides in briefly for it
@@ -959,12 +998,11 @@ PanelWindow {
                         Item {
                             id: drawerGap
 
-                            width: Theme.px(2) + panelWindow.revealT * Theme.gapSmall
+                            width: Theme.px(2) + panelWindow.drawerSpan * Theme.gapSmall
                             height: 1
                         }
 
-                        // Settings window: the gear between the logo (with its drawer) and the shortcuts button,
-                        // same kind of tile as that one (see SettingsButton)
+                        // Settings window: the gear right after the logo (with its drawer), see SettingsButton
                         SettingsButton {
                             id: settingsBtn
 
@@ -980,72 +1018,20 @@ PanelWindow {
 
                         }
 
-                        BarIcon {
-                            id: shortcutsButton
-
-                            readonly property real room: workspacesModule.x - x
-                            readonly property bool showLabel: panelWindow.barWidth >= Theme.px(1250)
-                                && room >= Theme.px(320)
-                            readonly property bool active: PickerManager.isOpen("shortcuts")
-
-                            objectName: "shortcutsBarButton"
-                            height: Theme.px(32)
-                            itemGap: 2 * Theme.gapSmall
-                            contentWidth: shortcutsContent.implicitWidth
-                            reveal: room >= contentWidth + Math.round(padding * BarState.density)
-                                + itemGap + Theme.gapSmall ? 1 : 0
-                            enabled: !panelWindow.editMode
-                            Accessible.role: Accessible.Button
-                            Accessible.name: "Search shortcuts"
-                            Accessible.onPressAction: PickerManager.toggle("shortcuts")
-                            Controls.ToolTip.text: "Search shortcuts"
-                            Controls.ToolTip.visible: hovered && enabled
-                            Controls.ToolTip.delay: Appearance.anim.durations.slow
-                            onClicked: PickerManager.toggle("shortcuts")
-
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: shortcutsButton.buttonWidth
-                                height: shortcutsButton.height
-                                radius: Theme.radiusS
-                                color: shortcutsButton.active || shortcutsButton.hovered
-                                    ? Theme.accentSoft : Theme.card
-                                border.color: Theme.stroke
-
-                                Behavior on color {
-                                    ColorAnimation { duration: Appearance.anim.durations.fast }
-                                }
-                            }
-
-                            Row {
-                                id: shortcutsContent
-
-                                anchors.centerIn: parent
-                                spacing: Theme.px(5)
-
-                                BarGlyph {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "󰌌"
-                                    font.pixelSize: Theme.px(16)
-                                    hot: shortcutsButton.hovered
-                                }
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    visible: shortcutsButton.showLabel
-                                    text: "Shortcuts"
-                                    font.family: Theme.fontUi
-                                    font.pixelSize: Theme.sizeLabel
-                                    color: Theme.text
-                                }
-                            }
+                        Item {
+                            // Gap after the gear, the same as before it: there the empty margin of the logo
+                            // button (drawer closed) or the room after the drawer pill (open: its row's
+                            // rightPadding 16 - leftPadding 6) belongs to the visible spacing. Before the window
+                            // title (no tray) a little more. It goes with the gear.
+                            width: settingsBtn.reveal * (drawerGap.width + (1 - panelWindow.drawerSpan)
+                                * (archBtn.width - archGlyph.x - archGlyph.width) + panelWindow.drawerSpan * 10
+                                + (1 - panelWindow.trayRevealT) * Theme.gapSmall)
+                            height: 1
                         }
 
-                        Item {
-                            // The empty margin of the logo button also belongs to the visible spacing.
-                            width: shortcutsButton.reveal * (drawerGap.width + (1 - panelWindow.revealT)
-                                * (archBtn.width - archGlyph.x - archGlyph.width))
-                            height: 1
+                        // The tray programs, always in view (click = bring up, right-click = Open/Exit menu)
+                        TrayDrawer {
+                            mainBar: panelWindow
                         }
 
                         ActiveWindow {
@@ -1148,6 +1134,14 @@ PanelWindow {
                 bottomY: panelWindow.notifHeight
             }
 
+        }
+
+        // ═══ Tray panel: programs in the tray and their menus ═══
+        TrayPanel {
+            id: trayClip
+
+            mainBar: panelWindow
+            shapeHeight: shapeItem.height
         }
 
         // ═══ Monitor panel: choose the bar monitor ═══
