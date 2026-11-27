@@ -31,6 +31,12 @@ Item {
     property point drift: Qt.point(0, 0)
     // Idle: now and then a shooting star crosses the picture diagonally (every 12-25 s)
     property bool shootingStars: false
+    // Share of the small stars that is drawn (1 = all, 0.5 = every second one)
+    property real density: 1
+    // true = no fixed sky: every star is a particle that fades in, flies its own slow path and fades out
+    // again. `drift` is then the mean flight (direction and speed scatter around it), the sparkle
+    // stars float along softly. Only with animated; calm = the fixed sky
+    property bool particles: false
     property real sparkleOpacity: 0.8
 
     property real time: 0
@@ -39,6 +45,7 @@ Item {
     readonly property string mode: (Settings.data.desktop || {
     }).stars || "animated"
     readonly property bool live: animated && mode === "animated"
+    readonly property bool flying: particles && live
 
     FrameAnimation {
         running: field.live && field.visible && field.opacity > 0.01
@@ -52,7 +59,11 @@ Item {
         property real cellScale: field.cellScale
         property real starSize: field.starSize
         property vector2d size: Qt.vector2d(width, height)
-        property vector2d pan: Qt.vector2d(field.pan.x + field.drift.x * field.time, field.pan.y + field.drift.y * field.time)
+        property real density: field.density
+        property real particles: field.flying ? 1 : 0
+        // Fixed sky: the drift shifts the whole sky. Particles: every star flies on its own (flow)
+        property vector2d pan: field.flying ? Qt.vector2d(field.pan.x, field.pan.y) : Qt.vector2d(field.pan.x + field.drift.x * field.time, field.pan.y + field.drift.y * field.time)
+        property vector2d flow: Qt.vector2d(field.drift.x, field.drift.y)
         property color starColor: field.starColor
 
         anchors.fill: parent
@@ -124,15 +135,18 @@ Item {
         model: field.mode === "off" ? [] : field.sparkles
 
         Sparkle {
+            id: glint
+
             required property var modelData
 
             x: Math.round(field.width * modelData[0] - width / 2)
             y: Math.round(field.height * modelData[1] - height / 2)
             layer.enabled: true
             layer.smooth: true
+            // Particles: floats softly around its place (a slow loop of a few pixels, each in its own rhythm)
             transform: Translate {
-                x: field.pan.x * 1.3
-                y: field.pan.y * 1.3
+                x: field.pan.x * 1.3 + (field.flying ? 7 * Math.sin(field.time * 0.11 + glint.modelData[3] * 1.7) : 0)
+                y: field.pan.y * 1.3 + (field.flying ? 5 * Math.sin(field.time * 0.083 + glint.modelData[3] * 2.9) : 0)
             }
             size: modelData[2]
             color: Qt.lighter(WalColors.color7, 1.05)

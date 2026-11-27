@@ -487,7 +487,8 @@ PanelWindow {
         }
 
         // ---------- Starry sky (a recurring motif as in the Wi-Fi/Bluetooth picker) ----------
-        // Quiet twinkling, parallax to the mouse. Gone when locking like the glow: the lock screen background
+        // Particles: every star flies its own slow path and fades in and out (a sky drifting as one rigid
+        // sheet looked stiff), parallax to the mouse. Gone when locking like the glow: the lock screen background
         // (lockBg) brings its own calm stars, the handover stays pixel identical.
         StarField {
             id: menuStars
@@ -501,15 +502,15 @@ PanelWindow {
             anchors.fill: parent
             opacity: 1 - lockBg.opacity
             visible: opacity > 0.01
-            // Few but slightly bigger stars (with a bright core): with cellScale 1.3 it was too much
-            // and too busy
-            // thinned out twice (1.3 -> 2 -> 3): kept very minimal here
+            // Kept very minimal: thinned out three times (cellScale 1.3 -> 2 -> 3, then only about half of
+            // those), fine soft dots instead of bigger stars with a bright core, no shooting stars
             cellScale: 3
-            starSize: 1.6
+            starSize: 1.2
             strength: 1.2
-            // Idle: drifts slowly to the top left, now and then a shooting star
-            drift: Qt.point(-5, -1.5)
-            shootingStars: true
+            density: 0.55
+            // Mean flight: slowly upward, slightly to the left; each particle scatters around it
+            particles: true
+            drift: Qt.point(-1.5, -5)
             pan: Qt.point(-px * 10, -py * 7)
             sparkles: [[0.08, 0.17, 6, 0], [0.9, 0.85, 6, 4.4]]
 
