@@ -35,7 +35,8 @@ Item {
     property real lastMouseY: -1
     // ───────────────────────── Data ─────────────────────────
     readonly property string needle: PickerManager.searchText.toLowerCase()
-    readonly property var entries: ClipboardState.entries
+    // Pinned entries first, then the history (ClipboardState.shown)
+    readonly property var entries: ClipboardState.shown
     readonly property var allImages: entries.filter((e) => {
         return e.isImage && matches(e);
     }).slice(0, ClipboardState.imageLimit)
@@ -238,7 +239,7 @@ Item {
     }
 
     function openImage(e) {
-        if (!ClipboardState.readyIds[e.id])
+        if (!ClipboardState.isReady(e))
             return ;
 
         ClipboardState.openImage(e);
@@ -271,6 +272,34 @@ Item {
         deleteTimer.restart();
     }
 
+    // Pin the selected entry (it moves to the top and survives "Clear all") or unpin it
+    function pinCurrent() {
+        const e = currentEntry();
+        if (e)
+            ClipboardState.togglePin(e);
+
+    }
+
+    // A freshly pinned entry moved to the top: keep the selection on it
+    function selectPinned() {
+        const id = "pin:" + ClipboardState.lastPinned;
+        const ti = allTexts.findIndex((e) => {
+            return e.id === id;
+        });
+        const ii = allImages.findIndex((e) => {
+            return e.id === id;
+        });
+        if (ti >= 0) {
+            zone = "text";
+            textIndex = ti;
+            scrollTextTo(ti);
+        } else if (ii >= 0) {
+            zone = "images";
+            imageIndex = ii;
+            scrollStripTo(ii);
+        }
+    }
+
     function deleteCurrent() {
         const e = currentEntry();
         if (e)
@@ -291,6 +320,14 @@ Item {
     function playOutro() {
         introAnim.stop();
         outroAnim.restart();
+    }
+
+    Connections {
+        function onLastPinnedChanged() {
+            Qt.callLater(root.selectPinned);
+        }
+
+        target: ClipboardState
     }
 
     Component.onCompleted: playIntro()
@@ -521,6 +558,12 @@ Item {
                                 event.accepted = true;
                             }
                             break;
+                        case Qt.Key_P:
+                            if (ctrl) {
+                                root.pinCurrent();
+                                event.accepted = true;
+                            }
+                            break;
                         }
                     }
                 }
@@ -583,7 +626,7 @@ Item {
                         required property int index
                         readonly property var entry: modelData
                         readonly property bool selected: root.zone === "images" && root.imageIndex === index
-                        readonly property bool ready: ClipboardState.readyIds[entry.id] === true
+                        readonly property bool ready: ClipboardState.isReady(entry)
                         readonly property bool dying: root.dyingId === entry.id
                         readonly property bool flashing: root.flashId === entry.id
                         // 0..1: copy flash. Fast on, soft off (before: gone after 0.9 s in 0.14 s).
@@ -792,13 +835,48 @@ Item {
                                 }
                             }
 
+                            // Pinned: a small pin at the top left, on a dark round so it shows on bright images
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.left: parent.left
+                                anchors.margins: 6
+                                width: 20
+                                height: 20
+                                radius: 10
+                                color: WalColors.withAlpha(WalColors.color0, 0.55)
+                                opacity: card.entry.pinned === true && !card.selected ? 1 : 0
+                                visible: opacity > 0.01
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰐃"
+                                    font.family: root.mono
+                                    font.pixelSize: 11
+                                    color: WalColors.color4
+                                }
+
+                                Behavior on opacity {
+                                    Smooth {
+                                        duration: 160
+                                    }
+
+                                }
+
+                            }
+
                             Row {
                                 anchors.top: parent.top
                                 anchors.right: parent.right
                                 anchors.margins: 6
-                                spacing: 0
+                                spacing: 4
                                 opacity: card.selected && !card.flashing ? 1 : 0
                                 visible: opacity > 0.01
+
+                                IconButton {
+                                    glyph: "󰐃"
+                                    lit: card.entry.pinned === true
+                                    onClicked: ClipboardState.togglePin(card.entry)
+                                }
 
                                 IconButton {
                                     glyph: "✕"
@@ -1153,6 +1231,15 @@ Item {
 
                                 }
 
+                                // Pinned: a small pin in the accent, always there; on the selected row
+                                // it becomes the button that unpins
+                                PinButton {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    pinned: row.entry.pinned === true
+                                    active: row.selected && !row.flashing
+                                    onClicked: ClipboardState.togglePin(row.entry)
+                                }
+
                                 IconButton {
                                     anchors.verticalCenter: parent.verticalCenter
                                     size: 20
@@ -1305,6 +1392,18 @@ Item {
                 width: parent.width
                 height: 14 + 18
 
+                // How many are pinned, and the keys for it
+                Text {
+                    anchors.left: parent.left
+                    y: 14
+                    height: 18
+                    verticalAlignment: Text.AlignVCenter
+                    text: ClipboardState.pins.length > 0 ? "󰐃  " + ClipboardState.pins.length + " pinned  ·  Ctrl+P" : "Ctrl+P pins an entry"
+                    font.family: root.mono
+                    font.pixelSize: 10
+                    color: WalColors.withAlpha(WalColors.color7, 0.32)
+                }
+
                 Text {
                     id: wipeLabel
 
@@ -1312,7 +1411,7 @@ Item {
                     y: 14
                     height: 18
                     verticalAlignment: Text.AlignVCenter
-                    text: root.confirmWipe ? "Click again to clear" : "Clear all"
+                    text: root.confirmWipe ? (ClipboardState.pins.length > 0 ? "Click again · pinned stay" : "Click again to clear") : "Clear history"
                     font.family: root.mono
                     font.pixelSize: 10
                     color: root.confirmWipe ? WalColors.color1 : WalColors.withAlpha(WalColors.color7, wipeArea.containsMouse ? 0.75 : 0.32)
@@ -1352,11 +1451,105 @@ Item {
 
     }
 
+    // The pin of a text row: a quiet accent pin when pinned; on the selected row a round button that
+    // pins or unpins. A new pin pops in with a little overshoot.
+    component PinButton: Item {
+        id: pinBtn
+
+        property bool pinned: false
+        property bool active: false
+        property real pop: pinned ? 1 : 0
+
+        signal clicked()
+
+        width: active || pinned ? 20 : 0
+        height: 20
+        visible: active || pinned || pop > 0.01
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 10
+            color: pinArea.containsMouse ? WalColors.withAlpha(WalColors.color4, 0.9) : (pinBtn.pinned ? WalColors.withAlpha(WalColors.color4, 0.18) : WalColors.withAlpha(WalColors.color0, 0.4))
+            opacity: pinBtn.active ? 1 : 0
+
+            Behavior on opacity {
+                Smooth {
+                    duration: 160
+                }
+
+            }
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: 120
+                }
+
+            }
+
+        }
+
+        Text {
+            anchors.centerIn: parent
+            text: "󰐃"
+            font.family: root.mono
+            font.pixelSize: 11
+            color: pinArea.containsMouse ? WalColors.color0 : (pinBtn.pinned ? WalColors.color4 : WalColors.withAlpha(WalColors.color7, 0.55))
+            opacity: pinBtn.active || pinBtn.pinned ? 1 : 0
+            scale: pinBtn.pinned ? 0.85 + 0.15 * pinBtn.pop : 1
+            rotation: pinBtn.pinned ? 0 : 35
+
+            Behavior on rotation {
+                NumberAnimation {
+                    duration: 260
+                    easing.type: Easing.OutBack
+                }
+
+            }
+
+            Behavior on opacity {
+                Smooth {
+                    duration: 160
+                }
+
+            }
+
+        }
+
+        MouseArea {
+            id: pinArea
+
+            anchors.fill: parent
+            enabled: pinBtn.active
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: pinBtn.clicked()
+        }
+
+        Behavior on pop {
+            NumberAnimation {
+                duration: 320
+                easing.type: Easing.OutBack
+                easing.overshoot: 3
+            }
+
+        }
+
+        Behavior on width {
+            Smooth {
+                duration: 160
+            }
+
+        }
+
+    }
+
     component IconButton: Rectangle {
         id: btn
 
         property string glyph: ""
         property bool danger: false
+        // On (a pinned entry's pin): accent instead of dim
+        property bool lit: false
         property real size: 20
 
         signal clicked()
@@ -1364,7 +1557,7 @@ Item {
         width: size
         height: size
         radius: size / 2
-        color: btnArea.containsMouse ? WalColors.withAlpha(danger ? WalColors.color1 : WalColors.color4, 0.9) : WalColors.withAlpha(WalColors.color0, 0.4)
+        color: btnArea.containsMouse ? WalColors.withAlpha(danger ? WalColors.color1 : WalColors.color4, 0.9) : (lit ? WalColors.withAlpha(WalColors.color4, 0.3) : WalColors.withAlpha(WalColors.color0, 0.4))
         scale: btnArea.pressed ? 0.9 : 1
 
         Text {
@@ -1372,7 +1565,7 @@ Item {
             text: btn.glyph
             font.family: root.mono
             font.pixelSize: btn.size * 0.42
-            color: btnArea.containsMouse ? WalColors.color0 : WalColors.withAlpha(WalColors.color7, 0.55)
+            color: btnArea.containsMouse ? WalColors.color0 : (btn.lit ? WalColors.color4 : WalColors.withAlpha(WalColors.color7, 0.55))
         }
 
         MouseArea {

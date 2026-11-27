@@ -68,7 +68,7 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
   command, `/` finds files. What you start often comes first.
 - Wallpapers, including animated ones (GIF, video) and an online search on wallhaven.cc
 - Music library for MPD
-- Clipboard history, trash, Wi-Fi, Bluetooth
+- Clipboard history (with pinned entries that survive clearing), trash, Wi-Fi, Bluetooth
 - VPN picker with a globe
 
 **Language learning tool**
