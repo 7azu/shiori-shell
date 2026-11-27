@@ -1,5 +1,5 @@
 // Which icons the bar shows and in which order
-// (right-click the logo = edit: click = on/off, drag = move).
+// (edit mode, by a middle click on the logo or from the settings: click = on/off, drag = move).
 // File (created on the first change): ~/.config/quickshell-local/bar-icons.json
 //   { "hidden": ["media", "stats"], "order": { "left": ["apps", "clipboard"], "right": ["vpn", "claude"] } }
 

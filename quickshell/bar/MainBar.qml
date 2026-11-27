@@ -35,16 +35,61 @@ PanelWindow {
     readonly property real barSlideY: startupDone ? -(1 - barSlide) * (shapeH + 28) : 0
     property real morph: panelOpen ? 1 : 0
     property bool drawerOpen: false
-    // Edit mode (right-click the logo): all icons visible, click = on/off
+    // Edit mode (middle click on the logo, or "Arrange icons" in the settings): all icons visible, click = on/off
     property bool editMode: false
     property real editReveal: editMode ? 1 : 0
     property bool drawerWasOpen: false
-    property real revealT: drawerOpen ? 1 : 0
+    // Resting on the logo opens the picker drawer a crack (logoPeek): the first icons show faintly
+    // 0 = closed, 1 = open. Opening springs a little past 1 and settles (iOS-like), closing eases out
+    // softly: two animations started in onDrawerOpenChanged (revealOpenAnim / revealCloseAnim)
+    property real revealT: 0
+    // Resting on the logo shows the first icons of the picker drawer as a small stack beside it
+    // (peekShown); a click fans the stack out into the open drawer (stackK 1 -> 0, BarDrawer).
+    // drawerFromLeft: the stack is in charge (from the peek until the drawer is fully open, or the
+    // stack has faded); otherwise the drawer slides in and out as always.
+    property bool drawerFromLeft: false
+    property real peekShown: (logoPeek || (drawerOpen && drawerFromLeft)) ? 1 : 0
+    // How much the stack is there: peeking/fanning out (peekShown), and while closing the icons gather
+    // back into the stack at the logo and it fades over the last part of the way
+    readonly property real stackShow: Math.max(peekShown, stackClosing ? smooth01(revealT * 2) : 0)
+    // Closing with the stack: the icons gather, then the stack is drawn into the logo (BarDrawer)
+    readonly property bool stackClosing: drawerFromLeft && !drawerOpen && revealT > 0
+    // Fan-out runs on the drawer's own opening value: icons, pill and drawer width all come from it, so
+    // they move (and spring past their places) together and nothing creeps after the others.
+    // Below 0 during the spring: the icons spread a touch further and settle.
+    readonly property real stackK: 1 - revealT
+    function checkStack() {
+        // Open: only once the spring has settled exactly (the icons spring with the pill until then)
+        if ((drawerOpen && revealT === 1 && !revealOpenAnim.running) || (revealT <= 0.001 && peekShown <= 0.001 && !logoPeek))
+            drawerFromLeft = false;
+
+    }
+    onRevealTChanged: checkStack()
+    onPeekShownChanged: checkStack()
+    onLogoPeekChanged: {
+        if (logoPeek && revealT <= 0.01)
+            drawerFromLeft = true;
+
+    }
     // The tray programs as icons right of the gear, always there while the tray is on and has programs
     // (bar/TrayDrawer.qml; until 2026-11-27 a second drawer behind a right-click on the logo)
     property real trayRevealT: TrayState.enabled && TrayState.count > 0 ? 1 : 0
     // How far the picker drawer is out, for the gaps around it
     readonly property real drawerSpan: clamp01(revealT)
+    // While the mouse rests on the logo the real picker drawer opens a crack and the logo starts to turn:
+    // a click will open it. Not while something is open; after a click not again until the mouse has left
+    // the logo (otherwise closing the drawer would leave it half open under the mouse).
+    property bool logoPeek: false
+    property bool logoPeekBlocked: false
+    readonly property bool logoPeekWanted: archHover.hovered && !logoPeekBlocked && !drawerOpen && !editMode && !panelOpen && BarState.barVisible
+    onLogoPeekWantedChanged: {
+        if (logoPeekWanted) {
+            logoPeekTimer.restart();
+        } else {
+            logoPeekTimer.stop();
+            logoPeek = false;
+        }
+    }
     property date now: new Date()
     property int viewYear: new Date().getFullYear()
     property int viewMonth: new Date().getMonth()
@@ -153,6 +198,12 @@ PanelWindow {
     property string dragGroup: ""
     // true while the order is applied: offsets jump to 0 without animation
     property bool reorderSnap: false
+
+    // 0..1 with soft ends (smoothstep): fades and sizes that start and stop without a kink
+    function smooth01(x) {
+        const t = Math.max(0, Math.min(1, x));
+        return t * t * (3 - 2 * t);
+    }
 
     function clamp01(x) {
         return Math.max(0, Math.min(1, x));
@@ -543,6 +594,20 @@ PanelWindow {
         if (!drawerOpen && PickerManager.isOpen("apps"))
             PickerManager.close();
 
+        // Closing mirrors the opening: from the open drawer the icons fly back into the stack
+        if (!drawerOpen && revealT > 0.5)
+            drawerFromLeft = true;
+
+        revealOpenAnim.stop();
+        revealCloseAnim.stop();
+        if (drawerOpen) {
+            revealOpenAnim.from = revealT;
+            revealOpenAnim.start();
+        } else {
+            revealCloseAnim.from = revealT;
+            revealCloseAnim.start();
+        }
+
     }
     onTrayOpenChanged: {
         if (trayOpen && PickerManager.isOpen("apps"))
@@ -634,6 +699,27 @@ PanelWindow {
         }
 
         target: NotificationState
+    }
+
+    // "Arrange icons" in the settings: a moment later, once the settings window has given the keyboard back
+    // (edit mode ends when the focus leaves the bar)
+    Connections {
+        function onEditRequested() {
+            editStartTimer.restart();
+        }
+
+        target: BarState
+    }
+
+    Timer {
+        id: editStartTimer
+
+        interval: 350
+        onTriggered: {
+            if (BarState.barVisible)
+                panelWindow.setEditMode(true);
+
+        }
     }
 
     // Tray by shortcut or from the launcher (the bar has to be there for it)
@@ -898,7 +984,9 @@ PanelWindow {
                         Item {
                             id: archBtn
 
-                            width: 24 + 16
+                            // While the drawer stack shows, the empty margin on the right gives way, so the
+                            // stack sits close to the logo (back while it fans out into the drawer)
+                            width: 24 + 16 - (panelWindow.drawerFromLeft ? 14 * Math.max(0, panelWindow.stackK) * panelWindow.stackShow : 0)
                             height: 32
 
                             Text {
@@ -917,7 +1005,8 @@ PanelWindow {
                                 text: "󰣇"
                                 font.pixelSize: 24
                                 color: (archHover.hovered || panelWindow.drawerOpen || panelWindow.editMode) ? WalColors.color4 : WalColors.color2
-                                rotation: panelWindow.editMode ? 180 : (panelWindow.drawerOpen ? 90 : 0)
+                                // The picker drawer turns it (a hint of that while peeking)
+                                rotation: panelWindow.editMode ? 180 : (panelWindow.drawerOpen ? 90 : (panelWindow.logoPeek ? 15 : 0))
                                 scale: archHover.hovered ? 1.1 : 1
                                 transformOrigin: Item.Center
 
@@ -969,20 +1058,32 @@ PanelWindow {
 
                             HoverHandler {
                                 id: archHover
+
+                                onHoveredChanged: {
+                                    if (!hovered)
+                                        panelWindow.logoPeekBlocked = false;
+
+                                }
                             }
 
                             MouseArea {
-                                anchors.fill: parent
-                                anchors.rightMargin: 10
-                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                // Fixed size: the button narrows under the stack
+                                width: 30
+                                height: parent.height
+                                acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                                 cursorShape: Qt.PointingHandCursor
+                                // Left = drawer with the pickers, middle = edit mode (any click ends it again).
+                                // The tray programs stand right of the gear (TrayDrawer).
                                 onClicked: (mouse) => {
-                                    if (mouse.button === Qt.RightButton)
-                                        panelWindow.setEditMode(!panelWindow.editMode);
-                                    else if (panelWindow.editMode)
+                                    panelWindow.logoPeekBlocked = true;
+                                    if (panelWindow.editMode) {
                                         panelWindow.setEditMode(false);
-                                    else
+                                    } else if (mouse.button === Qt.MiddleButton) {
+                                        panelWindow.setEditMode(true);
+                                    } else {
+                                        TrayState.closeMenu();
                                         panelWindow.drawerOpen = !panelWindow.drawerOpen;
+                                    }
                                 }
                             }
 
@@ -1202,7 +1303,48 @@ PanelWindow {
         }
     }
 
-    Behavior on revealT {
+    // Comes right away (a longer rest felt sluggish); only a very quick pass over the logo shows nothing
+    Timer {
+        id: logoPeekTimer
+
+        interval: 40
+        onTriggered: panelWindow.logoPeek = true
+    }
+
+    Behavior on peekShown {
+        NumberAnimation {
+            duration: 300
+            easing.type: Easing.OutCubic
+        }
+
+    }
+
+    // Opening: a calm spring, about 3 % past the end and back
+    NumberAnimation {
+        id: revealOpenAnim
+
+        target: panelWindow
+        property: "revealT"
+        to: 1
+        duration: 560
+        easing.type: Easing.OutBack
+        easing.overshoot: 0.9
+        // The last value may arrive while it still counts as running
+        onFinished: panelWindow.checkStack()
+    }
+
+    // Closing: soft all the way to the end, no spring
+    NumberAnimation {
+        id: revealCloseAnim
+
+        target: panelWindow
+        property: "revealT"
+        to: 0
+        duration: 440
+        easing.type: Easing.OutCubic
+    }
+
+    Behavior on trayRevealT {
         NumberAnimation {
             duration: 480
             easing.type: Easing.OutCubic

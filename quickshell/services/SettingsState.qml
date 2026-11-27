@@ -410,8 +410,16 @@ Singleton {
         "file": "bar",
         "local": true,
         "groups": [{
+            "title": "Order",
+            "rows": [{
+                "key": "",
+                "label": "Arrange icons",
+                "desc": "Closes this window and lets you drag the icons in the bar itself. A click anywhere else ends it. A middle click on the logo does the same.",
+                "type": "link",
+                "action": "arrange"
+            }]
+        }, {
             "title": "Drawer, left",
-            "footer": "The order is changed in the bar itself: right-click the logo, then drag.",
             "rows": [feature("clipboard", "Clipboard history", "Copied text and images.", ["cliphist"]), feature("trash", "Trash", "Deleted files, to restore or empty.", []), feature("bluetooth", "Bluetooth", "Devices around you.", ["bluetoothctl"]), feature("wifi", "Wi-Fi", "Networks around you.", ["nmcli"]), feature("apps", "App launcher", "Start apps from the bar.", []), feature("media", "Media picker", "Add-on, only present with the media add-on.", ["mpv"]), feature("monitor", "Monitors", "Move the bar to another monitor.", []), feature("ja", "Language tool", "Listen, read and keep track in the languages you learn.", ["mpv", "yt-dlp"])]
         }, {
             "title": "Status, right",
@@ -592,6 +600,16 @@ Singleton {
     function close() {
         browseKey = "";
         open = false;
+    }
+
+    // A row that does something instead of holding a value (type "link" with "action")
+    function run(action) {
+        switch (action) {
+        case "arrange":
+            close();
+            BarState.editRequested();
+            break;
+        }
     }
 
     function rowByKey(key) {

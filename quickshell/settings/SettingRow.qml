@@ -80,7 +80,12 @@ Item {
         anchors.fill: parent
         enabled: rowItem.row.type === "link"
         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: SettingsState.jump(rowItem.row.target, "")
+        onClicked: {
+            if (rowItem.row.action)
+                SettingsState.run(rowItem.row.action);
+            else
+                SettingsState.jump(rowItem.row.target, "");
+        }
     }
 
     Column {

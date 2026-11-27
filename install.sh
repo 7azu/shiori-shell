@@ -16,7 +16,7 @@
 #   -h, --help       show this help
 #
 # Everything the shell uses is installed without asking (parts you do not use can be switched off in
-# the shell: right-click the logo in the bar). Only asked: Zen Browser and the VPN killswitch.
+# the shell: settings window, page "Bar & Features"). Only asked: Zen Browser and the VPN killswitch.
 # Packages are installed together with a full system update (pacman -Syu), as Arch expects.
 # Safe to run again: packages use --needed, links that already point here are kept,
 # and anything that has to be replaced in ~/.config is moved to a backup folder first.

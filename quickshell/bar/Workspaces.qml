@@ -123,7 +123,7 @@ Item {
     // The media icon is in the candidate list of the app icons (one source): changes once to the target
     readonly property string mediaIconPath: mediaSvg(iconPalB)
     readonly property bool tabletWorkspaceFocused: Hyprland.focusedMonitor?.activeWorkspace?.id === tabletWorkspaceId
-    // Edit mode of the bar (right-click the logo), set by MainBar
+    // Edit mode of the bar (middle click on the logo), set by MainBar
     property bool editMode: false
     // Tablet including the separator can be hidden in edit mode (BarIcons ID "tablet"). If you are
     // on the tablet workspace right now, it stays visible: otherwise the active workspace would have no tile

@@ -13,6 +13,8 @@ Singleton {
 
     // Calendar open/close by shortcut (SUPER+K); the calendar itself belongs to the MainBar
     signal calendarToggleRequested()
+    // The settings window asks for the edit mode of the bar ("Arrange icons")
+    signal editRequested()
 
     PersistentProperties {
         id: persist

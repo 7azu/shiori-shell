@@ -58,7 +58,9 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 - Screen dropdown: a night light that follows sunset and sunrise (or your own times), and keep awake,
   which stops the automatic lock for a while
 - Calendar (a click on the clock) with the weather: now, the next days, and the day you select
-- Edit mode: right-click the logo on the left to hide or show icons. A hidden icon also turns its feature off.
+- The logo on the left: a click opens the drawer with the pickers, a right-click the one with the tray programs. Icons are switched on and off in
+  the settings (a hidden icon also turns its feature off) and dragged into another order after "Arrange
+  icons" there, or a middle click on the logo.
 
 **Pickers** (full-screen, keyboard first)
 - App launcher and task manager
@@ -113,7 +115,7 @@ You enter your sudo password once at the start. Then the installer:
    - They come with a full system update (`pacman -Syu`), as Arch expects.
    - pywal is only in the AUR now. The installer takes its maintained continuation `python-pywal16` and
      sets up `paru` when you have neither `paru` nor `yay`.
-   - Parts you do not use can be switched off later in the shell (right-click the logo in the bar).
+   - Parts you do not use can be switched off later in the settings (`Super + ,`, page "Bar & Features").
 2. **Links the configs** into `~/.config`. Anything already there is moved to
    `~/.config-backup-shiori-<date>` first.
 3. **Sets up the rest**: the lock screen (`/etc/pam.d/quickshell-lock`), Bluetooth, the tmux plugins, the

@@ -17,9 +17,80 @@ Item {
     property alias monitorSlot: monitorSlot
     property alias jaGroup: jaGroup
 
-    width: mainBar.revealT * drawerContent.implicitWidth
+    // Stack while peeking: the first icons lie one behind the other beside the logo. It takes only the
+    // room it shows (the card of the front icon starts 3 px into its slot, the last one ends 3 px early).
+    readonly property int stackDepth: 3
+    readonly property real stackStep: 6
+    readonly property real stackW: drawerContent.leftPadding + 32 + (stackDepth - 1) * stackStep
+    // The visible icons in row order, taken once when the stack starts (not on every frame)
+    property var stackItems: []
+
+    function takeStackOrder() {
+        stackItems = Array.from(drawerContent.children).filter((c) => {
+            return c.visible && c.width > 0;
+        }).sort((a, b) => {
+            return a.x - b.x;
+        });
+    }
+
+    // Place of an icon in the stack (beyond it: after the last)
+    function stackIndex(item) {
+        const i = stackItems.indexOf(item);
+        return i < 0 ? stackItems.length : i;
+    }
+
+    // Right edge of the last icon where it is drawn right now (stack place -> row place). While the stack
+    // fans out, pill and drawer reach at least this far: the last icon starts far right in the stack and
+    // would otherwise poke out of the pill for a few frames.
+    readonly property real stackRight: {
+        const last = stackItems.length ? stackItems[stackItems.length - 1] : null;
+        if (!last || !mainBar.drawerFromLeft)
+            return 0;
+
+        const target = drawerContent.leftPadding + (stackItems.length - 1) * stackStep;
+        return target + (last.x - target) * (1 - mainBar.stackK) + last.width;
+    }
+
+    // How far an icon is shown: the usual staggered reveal of the drawer, and while the stack is in
+    // charge its place in the stack (front clear, behind fainter and smaller, beyond the stack hidden
+    // until the fan-out brings it)
+    function revealOf(item, id) {
+        // The icons stand still and the pill's round end runs over them (opening and closing): an icon
+        // shows only once the end is past its ink (ink ends ~25 px into the 32 px slot) and is fully there
+        // 12 px later, which the last icon reaches exactly when the drawer is open. None stands outside the
+        // pill or is cut at the drawer's edge.
+        const usual = mainBar.clamp01((drawer.width - 10 - item.x - 20) / 12);
+        if (!mainBar.drawerFromLeft)
+            return usual;
+
+        const i = stackIndex(item);
+        const inStack = i < stackDepth ? 1 - i * 0.16 * mainBar.stackK : 1 - mainBar.stackK;
+        // Closing: the stack as a whole shrinks into the logo and fades (sink), the icons only take
+        // their depth in it. Not the drawer's edge: it would cut through icons that are still seen.
+        if (mainBar.stackClosing)
+            return Math.min(1, inStack);
+
+        return Math.min(1, Math.max(usual, mainBar.stackShow * inStack));
+    }
+
+    // Stack mode: as wide as the icons reach (so the gap to the gear stays the same while they spring);
+    // otherwise the opening value times the full width
+    // Closing: shrinks with the sinking stack, so it is always exactly as wide as what is still seen
+    width: mainBar.drawerFromLeft ? Math.max(mainBar.peekShown * stackW, mainBar.revealT > 0 ? sink * (stackRight + drawerContent.rightPadding) : 0) : Math.max(0, mainBar.revealT) * drawerContent.implicitWidth
+    // 1, and while closing with the stack it goes to 0: icons and pill shrink toward the logo and fade
+    readonly property real sink: mainBar.stackClosing ? mainBar.stackShow : 1
     height: 32
     clip: true
+
+    Connections {
+        function onDrawerFromLeftChanged() {
+            if (drawer.mainBar.drawerFromLeft)
+                drawer.takeStackOrder();
+
+        }
+
+        target: drawer.mainBar
+    }
 
     Item {
         id: pillLayer
@@ -27,7 +98,9 @@ Item {
         x: drawerContent.x
         width: drawerContent.implicitWidth
         height: drawerContent.height
-        opacity: mainBar.revealT
+        opacity: mainBar.revealT * drawer.sink
+        scale: drawer.sink
+        transformOrigin: Item.Left
 
         Rectangle {
             id: drawerPill
@@ -37,22 +110,29 @@ Item {
             width: drawerContent.pillW
             height: 32
             radius: height / 2
-            color: WalColors.withAlpha(WalColors.color4, drawerContent.focused ? 0.3 : 0.12)
+            // Outlined, not filled like the tray pill beside it: the drawer is the one that comes and
+            // goes, the tray stays. On hover it fills behind that icon.
+            color: WalColors.withAlpha(WalColors.color4, drawerContent.focused ? 0.3 : 0.03)
+            border.width: 1
+            border.color: WalColors.withAlpha(WalColors.color4, drawerContent.focused ? 0 : 0.28)
 
             Behavior on x {
                 NumberAnimation {
                     duration: 320
-                    easing.type: Easing.OutBack
-                    easing.overshoot: 1.08
+                    // No overshoot: the pill glides straight to its place
+                    easing.type: Easing.OutCubic
                 }
 
             }
 
             Behavior on width {
+                // Only for hover; while the drawer opens (and springs) the width follows it directly
+                enabled: drawer.mainBar.revealT === 1
+
                 NumberAnimation {
                     duration: 320
-                    easing.type: Easing.OutBack
-                    easing.overshoot: 1.08
+                    // No overshoot: the pill glides straight to its place
+                    easing.type: Easing.OutCubic
                 }
 
             }
@@ -126,7 +206,13 @@ Item {
         readonly property int effectiveIndex: hoveredIndex >= 0 ? hoveredIndex : lockedIndex
         readonly property bool focused: effectiveIndex >= 0
         readonly property real pillWidth: Math.round(18 + 16 * BarState.density)
-        readonly property real pillW: focused ? pillWidth : implicitWidth - (rightPadding - leftPadding)
+        // Full: the whole row. While the stack fans out the drawer is narrower than that; the pill then
+        // ends (round) at the drawer's edge instead of being cut off there and running ahead of the icons
+        // Ends (round) at the drawer's edge. While the stack fans out it runs exactly leftPadding behind
+        // the last icon, the same distance as when open: a larger lead that shrank at the end looked like
+        // the icon creeping after the pill had stopped.
+        // Not capped at the full width: the pill springs a little past its end with the drawer and settles
+        readonly property real pillW: focused ? pillWidth : (drawer.stackRight > 0 ? drawer.stackRight + leftPadding : drawer.width - (rightPadding - leftPadding))
         readonly property real pillX: {
             if (!focused)
                 return 0;
@@ -158,15 +244,40 @@ Item {
             return 0;
         }
 
-        x: drawer.width - implicitWidth
+        // The icons stay at their places; the drawer (and its pill) grows over them from the logo and
+        // shrinks back to it. Until 2026-11-27 they slid out from behind the logo: closing, the empty
+        // pill then went on sliding after the icons had faded.
+        x: 0
         height: parent.height
         leftPadding: 6
         rightPadding: 16
         spacing: Math.round(6 * BarState.density)
-        opacity: mainBar.revealT
-        // Only rehang after the build: in the middle of creation (bar recreated on another monitor) icons vanish otherwise
+        opacity: drawer.sink
+        scale: drawer.sink
+        transformOrigin: Item.Left
+        // Only rehang after the build: in the middle of creation (bar recreated on another monitor) icons vanish otherwise.
+        // Every icon gets its shift into the stack (to its stack place, times stackK) and lies behind
+        // the ones before it while stacked.
         Component.onCompleted: Qt.callLater(() => {
-            return mainBar.applyOrder("left");
+            mainBar.applyOrder("left");
+            for (const c of drawerContent.children) {
+                const item = c;
+                item.transform = [stackShift.createObject(item, {
+                    "x": Qt.binding(() => {
+                        // Stack: to its stack place (times stackK). Otherwise, while the opening springs past
+                        // its end, every icon spreads with the drawer and settles with it.
+                        return mainBar.drawerFromLeft ? mainBar.stackK * (drawerContent.leftPadding + drawer.stackIndex(item) * drawer.stackStep - item.x) : Math.max(0, mainBar.revealT - 1) * (item.x + item.width + drawerContent.rightPadding);
+                    })
+                })];
+                item.z = Qt.binding(() => {
+                    return mainBar.drawerFromLeft ? 100 - drawer.stackIndex(item) : 0;
+                });
+                // A small opaque card per icon while stacked: line icons on top of each other would show
+                // through one another; it fades while the stack fans out
+                stackCard.createObject(item, {
+                    "item": item
+                });
+            }
         })
 
         DrawerSlot {
@@ -175,7 +286,7 @@ Item {
             icon: "clipboard"
             visible: mainBar.iconShown("clipboard")
             active: ClipboardState.pickerVisible
-            reveal: mainBar.clamp01(mainBar.revealT * 1.6 - mainBar.revealDelay("clipboard"))
+            reveal: drawer.revealOf(cbSlot, "clipboard")
             onClicked: ClipboardState.toggle()
 
             EditBadge {
@@ -192,7 +303,7 @@ Item {
             icon: "trash"
             visible: mainBar.iconShown("trash")
             active: TrashState.pickerVisible
-            reveal: mainBar.clamp01(mainBar.revealT * 1.6 - mainBar.revealDelay("trash"))
+            reveal: drawer.revealOf(trashSlot, "trash")
             onClicked: TrashState.toggle()
 
             EditBadge {
@@ -213,7 +324,7 @@ Item {
             active: BluetoothState.pickerVisible
             linked: BluetoothState.connectedCount > 0
             dimmed: !BluetoothState.enabled
-            reveal: mainBar.clamp01(mainBar.revealT * 1.6 - mainBar.revealDelay("bluetooth"))
+            reveal: drawer.revealOf(btSlot, "bluetooth")
             onClicked: BluetoothState.toggle()
             onRightClicked: BluetoothState.togglePower()
 
@@ -236,7 +347,7 @@ Item {
             linked: WifiState.connected
             busy: WifiState.busy
             dimmed: !WifiState.enabled
-            reveal: mainBar.clamp01(mainBar.revealT * 1.6 - mainBar.revealDelay("wifi"))
+            reveal: drawer.revealOf(wifiSlot, "wifi")
             onClicked: WifiState.toggle()
 
             EditBadge {
@@ -253,7 +364,7 @@ Item {
             icon: "apps"
             visible: mainBar.iconShown("apps")
             active: PickerManager.isOpen("apps")
-            reveal: mainBar.clamp01(mainBar.revealT * 1.6 - mainBar.revealDelay("apps"))
+            reveal: drawer.revealOf(appsSlot, "apps")
             onClicked: PickerManager.toggle("apps")
 
             EditBadge {
@@ -270,7 +381,7 @@ Item {
             icon: "media"
             visible: Addons.media && mainBar.iconShown("media")
             active: PickerManager.isOpen("media")
-            reveal: mainBar.clamp01(mainBar.revealT * 1.6 - mainBar.revealDelay("media"))
+            reveal: drawer.revealOf(mediaSlot, "media")
             onClicked: PickerManager.toggle("media")
 
             EditBadge {
@@ -285,7 +396,7 @@ Item {
             id: monitorSlot
 
             visible: Quickshell.screens.length > 1 && mainBar.iconShown("monitor")
-            reveal: mainBar.clamp01(mainBar.revealT * 1.6 - mainBar.revealDelay("monitor"))
+            reveal: drawer.revealOf(monitorSlot, "monitor")
             onClicked: mainBar.toggleMonitors()
 
             EditBadge {
@@ -305,7 +416,7 @@ Item {
             readonly property bool hoverKeep: miniHover.hovered || jaBtn.hovered || capsule.dragging
             readonly property real frac: LanguageAudioState.currentDuration > 0 ? mainBar.clamp01(LanguageAudioState.currentPosition / LanguageAudioState.currentDuration) : 0
             property real shownFrac: frac
-            readonly property real reveal: mainBar.clamp01(mainBar.revealT * 1.6 - mainBar.revealDelay("ja"))
+            readonly property real reveal: drawer.revealOf(jaGroup, "ja")
             readonly property real timeW: LanguageAudioState.currentDuration >= 3600 ? 44 : 30
             readonly property real miniW: 110 + 2 * timeW
 
@@ -639,6 +750,36 @@ Item {
 
             }
 
+        }
+
+    }
+
+    Component {
+        id: stackCard
+
+        Rectangle {
+            property Item item
+
+            x: 3
+            y: (32 - height) / 2
+            // The front card lies under its icon, the ones behind cover their own: only their edges show
+            z: item && drawer.stackIndex(item) === 0 ? -1 : 1
+            width: 26
+            height: 26
+            radius: 9
+            color: Qt.tint(WalColors.color0, WalColors.withAlpha(WalColors.color4, 0.16))
+            border.width: 1
+            border.color: WalColors.withAlpha(WalColors.color4, 0.28)
+            opacity: mainBar.drawerFromLeft ? (mainBar.stackClosing ? 1 : mainBar.stackShow) * Math.max(0, mainBar.stackK) : 0
+            visible: opacity > 0.01
+        }
+
+    }
+
+    Component {
+        id: stackShift
+
+        Translate {
         }
 
     }
