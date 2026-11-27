@@ -80,6 +80,44 @@ Singleton {
         return charging ? Theme.accent : Theme.levelTone(percent);
     }
 
+    // ---- Low battery: a note at 15 %, an urgent one at 5 %, each once per discharge ----
+    readonly property var warnLevels: [15, 5]
+    // The lowest level already warned about since the last charge (100 = none yet)
+    property int warned: 100
+
+    // The level to warn about now, or 0. Pure, so it can be tried without a battery
+    function lowWarning(percent, warnedAt) {
+        let hit = 0;
+        for (let i = 0; i < warnLevels.length; i++) {
+            if (percent <= warnLevels[i] && warnedAt > warnLevels[i])
+                hit = warnLevels[i];
+
+        }
+        return hit;
+    }
+
+    function checkLow() {
+        if (!hasBattery || !onBattery || charging) {
+            warned = 100;
+            return ;
+        }
+        const level = lowWarning(percent, warned);
+        if (level === 0)
+            return ;
+
+        warned = level;
+        const left = timeToEmpty > 0 ? " · " + fmtDuration(timeToEmpty) + " left" : "";
+        NotificationState.send("Battery", level <= 5 ? "Battery almost empty" : "Battery low", Math.round(percent) + " %" + left + (level <= 5 ? " · plug in the charger" : ""), {
+            "icon": level <= 5 ? "battery-empty" : "battery-caution",
+            "keep": true,
+            "critical": level <= 5
+        });
+    }
+
+    onPercentChanged: checkLow()
+    onChargingChanged: checkLow()
+    onOnBatteryChanged: checkLow()
+
     function setProfile(p) {
         if (hasProfiles)
             PowerProfiles.profile = p;
