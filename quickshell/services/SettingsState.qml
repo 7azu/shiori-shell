@@ -364,6 +364,15 @@ Singleton {
                 "unit": "min"
             }]
         }, {
+            "title": "Password prompt",
+            "footer": "When an app asks for administrator rights. While the shell is not running, hyprpolkitagent takes over by itself.",
+            "rows": [{
+                "key": "settings:polkit.ownDialog",
+                "label": "Shell password dialog",
+                "desc": "Asks for your password in a card in the look of the shell. Off: hyprpolkitagent's own window.",
+                "type": "toggle"
+            }]
+        }, {
             "title": "Visualizer",
             "rows": [{
                 "key": "settings:desktop.visualizer",

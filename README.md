@@ -76,6 +76,7 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 - Screenshot editor and video editor (trim, crop, compress with HandBrake)
 - Encrypted folders (gocryptfs) that unlock with a password in the file browser and yazi
 - Calculator, volume and brightness popups, notification toasts
+- A password dialog in the look of the shell when an app asks for administrator rights (polkit)
 - A settings window for all of it (`Super + ,` or the gear in the bar)
 - Audio visualizer on the desktop
 
@@ -233,6 +234,10 @@ or `"animated"` for the sky in the power menu, lock screen and workspace overvie
 (monitors off, 8), `"suspend"` (standby, 25, off by default: `"suspendOn": true` turns it on).
 `"lockOn": false` (and so on) turns a step off; the settings
 window has a switch beside each. Videos, games, calls and Keep awake hold them back.
+
+**`polkit`**: `"ownDialog": false` leaves the password prompt (when an app asks for administrator rights)
+to hyprpolkitagent. With `true` (default) the shell asks itself; while the shell is not running,
+hyprpolkitagent takes over by itself.
 
 **`weather`**: the weather in the calendar. `"place"` is a town or city (`"Tokyo"`); empty uses the main
 city of your time zone. `"unit"` is `"c"` or `"f"`, `"enabled": false` hides it. The forecast comes from

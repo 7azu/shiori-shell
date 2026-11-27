@@ -70,6 +70,10 @@ ShellRoot {
 
     SettingsWindow {}
 
+    // Password prompt for apps that ask for administrator rights (polkit agent, windows/PolkitDialog,
+    // services/PolkitState); hyprpolkitagent takes over while the shell is not running
+    PolkitDialog {}
+
     // First step while you are away: the screen turns darker softly (services/IdleState, hypridle)
     IdleDim {}
 
