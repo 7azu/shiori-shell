@@ -183,6 +183,13 @@ hl.layer_rule({
   no_anim = true,
 })
 
+-- The dark veil of the first idle step (quickshell/windows/IdleDim.qml) fades itself.
+hl.layer_rule({
+  name    = "idle-dim",
+  match   = { namespace = "quickshell:idle-dim" },
+  no_anim = true,
+})
+
 -- Quickshell owns the backdrop fade and keeps this surface mapped through a workspace switch.
 hl.layer_rule({
   name      = "workspaceoverview",

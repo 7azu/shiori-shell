@@ -35,9 +35,10 @@ hl.on("hyprland.start", function()
   -- ┌────────────────────────────────────────────────────────────┐
   -- │  SECURITY                                                  │
   -- └────────────────────────────────────────────────────────────┘
-  -- automatic screen lock (hypridle.conf). Started directly instead of via a systemd unit,
+  -- while you are away: darker, lock, monitors off, standby (steps in the shell settings, "idle";
+  -- scripts/idle.sh writes hypridle's file from them). Started directly instead of via a systemd unit,
   -- because graphical-session.target isn't active here and the unit would never start.
-  hl.exec_cmd("hypridle")
+  hl.exec_cmd(home .. "/.config/hypr/scripts/idle.sh")
 
   -- Start the SSH agent without opening a passphrase dialog.
   hl.exec_cmd("systemctl --user start ssh-agent.socket")

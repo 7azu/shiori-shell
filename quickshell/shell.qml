@@ -70,6 +70,9 @@ ShellRoot {
 
     SettingsWindow {}
 
+    // First step while you are away: the screen turns darker softly (services/IdleState, hypridle)
+    IdleDim {}
+
     // "Identify" on the Displays page: the name of each monitor big on it for a moment
     DisplayIdentify {}
 

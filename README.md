@@ -72,6 +72,7 @@ Change the wallpaper, and the bar, terminals, editor, GTK and Qt apps and a few 
 
 **Windows and tools**
 - Lock screen, power menu, workspace overview (right-click the workspaces)
+- While you are away: the screen turns darker, then locks, the monitors go off; standby can be added (each step adjustable)
 - Screenshot editor and video editor (trim, crop, compress with HandBrake)
 - Encrypted folders (gocryptfs) that unlock with a password in the file browser and yazi
 - Calculator, volume and brightness popups, notification toasts
@@ -227,6 +228,11 @@ or `"animated"` for the sky in the power menu, lock screen and workspace overvie
 - `"temperature"` is the color temperature at full warmth in Kelvin, `2000` to `6000` (default `4000`).
 - The sun times come from your time zone, nothing is asked on the network. For exact times put your place
   into `~/.config/quickshell-local/location.json` as `{"lat": 48.1, "lon": 11.6}`.
+
+**`idle`**: minutes without input for each step: `"dim"` (darker, default 3), `"lock"` (4), `"screenOff"`
+(monitors off, 8), `"suspend"` (standby, 25, off by default: `"suspendOn": true` turns it on).
+`"lockOn": false` (and so on) turns a step off; the settings
+window has a switch beside each. Videos, games, calls and Keep awake hold them back.
 
 **`weather`**: the weather in the calendar. `"place"` is a town or city (`"Tokyo"`); empty uses the main
 city of your time zone. `"unit"` is `"c"` or `"f"`, `"enabled": false` hides it. The forecast comes from

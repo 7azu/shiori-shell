@@ -320,6 +320,50 @@ Singleton {
                 }]
             }]
         }, {
+            "title": "While you are away",
+            "footer": "Minutes without input; the switch beside each turns a step off. Videos, games, calls and Keep awake (screen icon) hold all steps back. Any input ends the darkening and turns the monitors on again.",
+            "rows": [{
+                "key": "settings:idle.dim",
+                "switch": "settings:idle.dimOn",
+                "label": "Darker",
+                "desc": "The screen turns darker softly, as a first sign.",
+                "type": "number",
+                "min": 0,
+                "max": 120,
+                "step": 1,
+                "unit": "min"
+            }, {
+                "key": "settings:idle.lock",
+                "switch": "settings:idle.lockOn",
+                "label": "Lock",
+                "desc": "The lock screen comes up.",
+                "type": "number",
+                "min": 0,
+                "max": 120,
+                "step": 1,
+                "unit": "min"
+            }, {
+                "key": "settings:idle.screenOff",
+                "switch": "settings:idle.screenOffOn",
+                "label": "Monitors off",
+                "desc": "Saves power and spares OLED panels.",
+                "type": "number",
+                "min": 0,
+                "max": 240,
+                "step": 1,
+                "unit": "min"
+            }, {
+                "key": "settings:idle.suspend",
+                "switch": "settings:idle.suspendOn",
+                "label": "Standby",
+                "desc": "The computer goes to sleep; it locks before.",
+                "type": "number",
+                "min": 0,
+                "max": 480,
+                "step": 5,
+                "unit": "min"
+            }]
+        }, {
             "title": "Visualizer",
             "rows": [{
                 "key": "settings:desktop.visualizer",

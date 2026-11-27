@@ -41,6 +41,16 @@
     "animations": true,
     "animSpeed": 1
   },
+  "idle": {
+    "dim": 3,
+    "lock": 4,
+    "screenOff": 8,
+    "suspend": 25,
+    "dimOn": true,
+    "lockOn": true,
+    "screenOffOn": true,
+    "suspendOn": false
+  },
   "weather": {
     "enabled": true,
     "place": "",
