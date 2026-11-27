@@ -9,6 +9,7 @@ tmux/plugins/
 # Machine-specific files (each machine keeps its own)
 nvim/lazy-lock.json
 hypr/modules/monitors.lua
+hypr/modules/displays.lua
 quickshell/.qmlls.ini
 
 # Private add-ons: link to ~/.config/shiori-shell/addons (see services/Addons.qml)

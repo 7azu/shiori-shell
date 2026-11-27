@@ -25,6 +25,13 @@ if monitorsFile then
 else
   hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
 end
+-- Set on the Displays page of the shell settings (quickshell/services/DisplayState.qml), this machine
+-- only, not in the repo: overrides the monitor lines above
+local displaysFile = io.open(os.getenv("HOME") .. "/.config/hypr/modules/displays.lua", "r")
+if displaysFile then
+  displaysFile:close()
+  require("displays")
+end
 require("input")       -- keyboard, mouse, drawing tablet
 require("looks")       -- gaps, borders, blur, opacity
 require("animations")  -- curves and animations

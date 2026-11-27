@@ -268,8 +268,11 @@ any language. Set `provider` to one of these, or leave it on `auto`, which takes
   shadow, blur and animation speed are on the Windows page of the settings window, with a live preview.
   They are stored under `"windows"` in `settings.json`, read by `hypr/modules/style.lua` and sent to
   Hyprland at once (`hyprctl eval`), no reload needed.
-- **Monitors**: without a config, every monitor uses its preferred mode. For a fixed layout copy
-  `hypr/modules/monitors.example.lua` to `hypr/modules/monitors.lua` (ignored by git).
+- **Monitors**: without a config, every monitor uses its preferred mode. Arrange them, and set
+  resolution, refresh rate, scale and rotation, on the Displays page of the settings window: it tries a
+  change for 15 s before keeping it and saves to `hypr/modules/displays.lua` (ignored by git). By hand:
+  copy `hypr/modules/monitors.example.lua` to `hypr/modules/monitors.lua` (also ignored by git;
+  displays.lua is loaded after it).
 
 ### Terminal
 

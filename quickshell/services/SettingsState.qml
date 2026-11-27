@@ -53,6 +53,15 @@ Singleton {
         "page": "system",
         "words": "version programs installed missing files host about"
     }, {
+        "id": "displays",
+        "group": 0,
+        "name": "Displays",
+        "seal": "画",
+        "blurb": "Where your monitors stand, and how sharp, fast, large and turned each one is.",
+        "page": "displays",
+        "local": true,
+        "words": "monitor monitors display screen screens arrangement layout position resolution refresh rate hz scale rotation rotate portrait landscape identify turn off"
+    }, {
         "id": "windows",
         "group": 1,
         "name": "Windows",

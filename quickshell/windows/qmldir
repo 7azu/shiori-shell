@@ -18,3 +18,4 @@ DesktopVisualizer 1.0 DesktopVisualizer.qml
 DesktopVisualizerLook 1.0 DesktopVisualizerLook.qml
 AppColorFade 1.0 AppColorFade.qml
 EditorActionSlot 1.0 EditorActionSlot.qml
+DisplayIdentify 1.0 DisplayIdentify.qml

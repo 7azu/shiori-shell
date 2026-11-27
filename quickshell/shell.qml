@@ -70,6 +70,9 @@ ShellRoot {
 
     SettingsWindow {}
 
+    // "Identify" on the Displays page: the name of each monitor big on it for a moment
+    DisplayIdentify {}
+
     // Volume keys / volume knob of the keyboard: show the popup, max. 100 %
     GlobalShortcut {
         name: "volume_up"
